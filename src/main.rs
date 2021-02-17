@@ -32,6 +32,8 @@ struct StatusFlag {
 enum Instruction {
     LDA_IM = 0xA9,
     LDA_ZP = 0xA5,
+    LDX_IM = 0xA2,
+    LDX_ZP = 0xA6,
 }
 #[warn(non_camel_case_types)]
 
@@ -85,6 +87,19 @@ impl CPU {
                     self.flags.z = byte == 0;
                     self.flags.n = byte >> 6 & 1 == 1
                 }
+                Ok(LDX_IM) => {
+                    let byte = self.fetch_byte(&mut cycles, ram);
+                    self.x = byte;
+                    self.flags.z = byte == 0;
+                    self.flags.n = byte >> 6 & 1 == 1
+                }
+                Ok(LDX_ZP) => {
+                    let addr = self.fetch_byte(&mut cycles, ram);
+                    let byte = self.read_byte(&mut cycles, ram, addr as usize);
+                    self.x = byte;
+                    self.flags.z = byte == 0;
+                    self.flags.n = byte >> 6 & 1 == 1
+                }
                 Err(_) => println!("does not match!"),
             }
         }
@@ -131,7 +146,7 @@ fn main() {
     let mut cpu = CPU::default();
     let mut ram = RAM::default();
     cpu.reset(&mut ram);
-    ram[0xFFFC] = Instruction::LDA_ZP.into();
+    ram[0xFFFC] = Instruction::LDX_ZP.into();
     ram[0xFFFD] = 0x42;
     ram[0x42] = 0x84;
     cpu.execute(3, &mut ram);
