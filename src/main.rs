@@ -26,11 +26,14 @@ struct StatusFlag {
     n: bool, // Negative Flag
 }
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, TryFromPrimitive, IntoPrimitive)]
 #[repr(u8)]
 enum Instruction {
     LDA_IM = 0xA9,
+    LDA_ZP = 0xA5,
 }
+#[warn(non_camel_case_types)]
 
 impl CPU {
     pub fn reset(&mut self, ram: &mut RAM) {
@@ -57,6 +60,12 @@ impl CPU {
         byte
     }
 
+    fn read_byte(&mut self, cycles: &mut usize, ram: &mut RAM, addr: usize) -> u8 {
+        let byte = ram.read_byte(addr);
+        *cycles -= 1;
+        byte
+    }
+
     pub fn execute(&mut self, mut cycles: usize, ram: &mut RAM) {
         while cycles > 0 {
             let ins = self.fetch_byte(&mut cycles, ram);
@@ -65,6 +74,13 @@ impl CPU {
             match Instruction::try_from(ins) {
                 Ok(LDA_IM) => {
                     let byte = self.fetch_byte(&mut cycles, ram);
+                    self.a = byte;
+                    self.flags.z = byte == 0;
+                    self.flags.n = byte >> 6 & 1 == 1
+                }
+                Ok(LDA_ZP) => {
+                    let addr = self.fetch_byte(&mut cycles, ram);
+                    let byte = self.read_byte(&mut cycles, ram, addr as usize);
                     self.a = byte;
                     self.flags.z = byte == 0;
                     self.flags.n = byte >> 6 & 1 == 1
@@ -115,8 +131,9 @@ fn main() {
     let mut cpu = CPU::default();
     let mut ram = RAM::default();
     cpu.reset(&mut ram);
-    ram[0xFFFC] = Instruction::LDA_IM.into();
+    ram[0xFFFC] = Instruction::LDA_ZP.into();
     ram[0xFFFD] = 0x42;
-    cpu.execute(2, &mut ram);
+    ram[0x42] = 0x84;
+    cpu.execute(3, &mut ram);
     println!("CPU: {:?}", cpu);
 }
