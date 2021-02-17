@@ -22,7 +22,7 @@ struct StatusFlag {
     i: bool, // Interrupt Disable
     d: bool, // Decimal Mode
     b: bool, // Break Command
-    o: bool, // Overflow Flag
+    v: bool, // Overflow Flag
     n: bool, // Negative Flag
 }
 
@@ -47,7 +47,7 @@ impl CPU {
         self.flags.i = false;
         self.flags.d = false;
         self.flags.b = false;
-        self.flags.o = false;
+        self.flags.v = false;
         self.flags.n = false;
         self.a = 0;
         self.x = 0;
