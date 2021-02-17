@@ -32,6 +32,7 @@ struct StatusFlag {
 enum Instruction {
     LDA_IM = 0xA9,
     LDA_ZP = 0xA5,
+    LDA_ZPX = 0xB5,
     LDX_IM = 0xA2,
     LDX_ZP = 0xA6,
 }
@@ -55,20 +56,20 @@ impl CPU {
         ram.initialize();
     }
 
-    fn fetch_byte(&mut self, cycles: &mut usize, ram: &mut RAM) -> u8 {
+    fn fetch_byte(&mut self, cycles: &mut isize, ram: &mut RAM) -> u8 {
         let byte = ram.read_byte(self.pc as usize);
-        self.pc += 1;
+        self.pc = self.pc.wrapping_add(1);
         *cycles -= 1;
         byte
     }
 
-    fn read_byte(&mut self, cycles: &mut usize, ram: &mut RAM, addr: usize) -> u8 {
+    fn read_byte(&mut self, cycles: &mut isize, ram: &mut RAM, addr: usize) -> u8 {
         let byte = ram.read_byte(addr);
         *cycles -= 1;
         byte
     }
 
-    pub fn execute(&mut self, mut cycles: usize, ram: &mut RAM) {
+    pub fn execute(&mut self, mut cycles: isize, ram: &mut RAM) {
         while cycles > 0 {
             let ins = self.fetch_byte(&mut cycles, ram);
 
@@ -83,6 +84,14 @@ impl CPU {
                 Ok(LDA_ZP) => {
                     let addr = self.fetch_byte(&mut cycles, ram);
                     let byte = self.read_byte(&mut cycles, ram, addr as usize);
+                    self.a = byte;
+                    self.flags.z = byte == 0;
+                    self.flags.n = byte >> 6 & 1 == 1
+                }
+                Ok(LDA_ZPX) => {
+                    let addr = self.fetch_byte(&mut cycles, ram);
+                    let byte = self.read_byte(&mut cycles, ram, (addr + self.x) as usize);
+                    cycles -= 1; // may be consumed by add x
                     self.a = byte;
                     self.flags.z = byte == 0;
                     self.flags.n = byte >> 6 & 1 == 1
@@ -146,9 +155,11 @@ fn main() {
     let mut cpu = CPU::default();
     let mut ram = RAM::default();
     cpu.reset(&mut ram);
-    ram[0xFFFC] = Instruction::LDX_ZP.into();
-    ram[0xFFFD] = 0x42;
+    ram[0xFFFC] = Instruction::LDX_IM.into();
+    ram[0xFFFD] = 0x2;
+    ram[0xFFFE] = Instruction::LDA_ZPX.into();
+    ram[0xFFFF] = 0x40;
     ram[0x42] = 0x84;
-    cpu.execute(3, &mut ram);
+    cpu.execute(6, &mut ram);
     println!("CPU: {:?}", cpu);
 }
