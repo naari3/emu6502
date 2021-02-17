@@ -33,10 +33,14 @@ enum Instruction {
     LDA_IM = 0xA9,
     LDA_ZP = 0xA5,
     LDA_ZPX = 0xB5,
+
     LDX_IM = 0xA2,
     LDX_ZP = 0xA6,
+    LDX_ZPY = 0xB6,
+
     LDY_IM = 0xA0,
     LDY_ZP = 0xA4,
+    LDY_ZPX = 0xB4,
 }
 #[warn(non_camel_case_types)]
 
@@ -111,6 +115,14 @@ impl CPU {
                     self.flags.z = byte == 0;
                     self.flags.n = byte >> 6 & 1 == 1
                 }
+                Ok(LDX_ZPY) => {
+                    let addr = self.fetch_byte(&mut cycles, ram);
+                    let byte = self.read_byte(&mut cycles, ram, (addr + self.y) as usize);
+                    cycles -= 1; // may be consumed by add y
+                    self.x = byte;
+                    self.flags.z = byte == 0;
+                    self.flags.n = byte >> 6 & 1 == 1
+                }
                 Ok(LDY_IM) => {
                     let byte = self.fetch_byte(&mut cycles, ram);
                     self.y = byte;
@@ -120,6 +132,14 @@ impl CPU {
                 Ok(LDY_ZP) => {
                     let addr = self.fetch_byte(&mut cycles, ram);
                     let byte = self.read_byte(&mut cycles, ram, addr as usize);
+                    self.y = byte;
+                    self.flags.z = byte == 0;
+                    self.flags.n = byte >> 6 & 1 == 1
+                }
+                Ok(LDY_ZPX) => {
+                    let addr = self.fetch_byte(&mut cycles, ram);
+                    let byte = self.read_byte(&mut cycles, ram, (addr + self.x) as usize);
+                    cycles -= 1; // may be consumed by add x
                     self.y = byte;
                     self.flags.z = byte == 0;
                     self.flags.n = byte >> 6 & 1 == 1
