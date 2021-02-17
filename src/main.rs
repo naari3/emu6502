@@ -41,6 +41,8 @@ enum Instruction {
     LDY_IM = 0xA0,
     LDY_ZP = 0xA4,
     LDY_ZPX = 0xB4,
+
+    NOP = 0xEA,
 }
 #[warn(non_camel_case_types)]
 
@@ -144,6 +146,10 @@ impl CPU {
                     self.flags.z = byte == 0;
                     self.flags.n = byte >> 6 & 1 == 1
                 }
+                Ok(NOP) => {
+                    cycles -= 1;
+                    println!("nop")
+                }
                 Err(_) => println!("does not match!"),
             }
         }
@@ -195,6 +201,6 @@ fn main() {
     ram[0xFFFE] = Instruction::LDA_ZPX.into();
     ram[0xFFFF] = 0x40;
     ram[0x42] = 0x84;
-    cpu.execute(6, &mut ram);
+    cpu.execute(7, &mut ram);
     println!("CPU: {:?}", cpu);
 }
