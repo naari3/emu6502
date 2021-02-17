@@ -23,7 +23,7 @@ struct StatusFlag {
 }
 
 impl CPU {
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, ram: &mut RAM) {
         self.pc = 0xFFFC;
         self.sp = 0xFF;
         self.flags.c = false;
@@ -36,11 +36,33 @@ impl CPU {
         self.a = 0;
         self.x = 0;
         self.y = 0;
+
+        ram.initialize();
+    }
+}
+
+const MAX_MEMORY: usize = 0x100 * 0x8;
+struct RAM {
+    inner: [u8; MAX_MEMORY],
+}
+
+impl Default for RAM {
+    fn default() -> Self {
+        RAM {
+            inner: [0; MAX_MEMORY],
+        }
+    }
+}
+
+impl RAM {
+    fn initialize(&mut self) {
+        self.inner = [0; MAX_MEMORY];
     }
 }
 
 fn main() {
     let mut cpu = CPU::default();
-    cpu.reset();
+    let mut ram = RAM::default();
+    cpu.reset(&mut ram);
     println!("Hello, world!");
 }
