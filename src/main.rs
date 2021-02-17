@@ -35,6 +35,8 @@ enum Instruction {
     LDA_ZPX = 0xB5,
     LDX_IM = 0xA2,
     LDX_ZP = 0xA6,
+    LDY_IM = 0xA0,
+    LDY_ZP = 0xA4,
 }
 #[warn(non_camel_case_types)]
 
@@ -106,6 +108,19 @@ impl CPU {
                     let addr = self.fetch_byte(&mut cycles, ram);
                     let byte = self.read_byte(&mut cycles, ram, addr as usize);
                     self.x = byte;
+                    self.flags.z = byte == 0;
+                    self.flags.n = byte >> 6 & 1 == 1
+                }
+                Ok(LDY_IM) => {
+                    let byte = self.fetch_byte(&mut cycles, ram);
+                    self.y = byte;
+                    self.flags.z = byte == 0;
+                    self.flags.n = byte >> 6 & 1 == 1
+                }
+                Ok(LDY_ZP) => {
+                    let addr = self.fetch_byte(&mut cycles, ram);
+                    let byte = self.read_byte(&mut cycles, ram, addr as usize);
+                    self.y = byte;
                     self.flags.z = byte == 0;
                     self.flags.n = byte >> 6 & 1 == 1
                 }
