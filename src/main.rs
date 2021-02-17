@@ -78,6 +78,9 @@ impl CPU {
     }
 
     pub fn execute(&mut self, mut cycles: isize, ram: &mut RAM) {
+        let addr_low = self.fetch_byte(&mut cycles, ram);
+        let addr_high = self.fetch_byte(&mut cycles, ram);
+        self.pc = ((addr_high as u16) << 8) + (addr_low as u16);
         while cycles > 0 {
             let ins = self.fetch_byte(&mut cycles, ram);
 
@@ -196,11 +199,16 @@ fn main() {
     let mut cpu = CPU::default();
     let mut ram = RAM::default();
     cpu.reset(&mut ram);
-    ram[0xFFFC] = Instruction::LDX_IM.into();
-    ram[0xFFFD] = 0x2;
-    ram[0xFFFE] = Instruction::LDA_ZPX.into();
-    ram[0xFFFF] = 0x40;
+    ram[0x8000] = Instruction::LDX_IM.into();
+    ram[0x8001] = 0x2;
+    ram[0x8002] = Instruction::LDA_ZPX.into();
+    ram[0x8003] = 0x40;
+    ram[0x8004] = Instruction::NOP.into();
+    ram[0x8005] = Instruction::NOP.into();
+    ram[0x8006] = Instruction::NOP.into();
+    ram[0xFFFC] = 0x00;
+    ram[0xFFFD] = 0x80;
     ram[0x42] = 0x84;
-    cpu.execute(7, &mut ram);
+    cpu.execute(13, &mut ram);
     println!("CPU: {:?}", cpu);
 }
