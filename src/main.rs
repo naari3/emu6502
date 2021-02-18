@@ -42,9 +42,15 @@ enum Instruction {
     LDY_ZP = 0xA4,
     LDY_ZPX = 0xB4,
 
+    STA_ZP = 0x85,
+
     NOP = 0xEA,
 }
 #[warn(non_camel_case_types)]
+
+trait Instruct {
+    fn execute(&self, cpu: &mut CPU, cycles: isize, ram: &mut RAM);
+}
 
 impl CPU {
     pub fn reset(&mut self, ram: &mut RAM) {
@@ -75,6 +81,11 @@ impl CPU {
         let byte = ram.read_byte(addr);
         *cycles -= 1;
         byte
+    }
+
+    fn write_byte(&mut self, cycles: &mut isize, ram: &mut RAM, addr: usize, byte: u8) {
+        ram.write_byte(addr, byte);
+        *cycles -= 1;
     }
 
     pub fn execute(&mut self, mut cycles: isize, ram: &mut RAM) {
@@ -149,6 +160,10 @@ impl CPU {
                     self.flags.z = byte == 0;
                     self.flags.n = byte >> 6 & 1 == 1
                 }
+                Ok(STA_ZP) => {
+                    let addr = self.fetch_byte(&mut cycles, ram);
+                    self.write_byte(&mut cycles, ram, addr as usize, self.a);
+                }
                 Ok(NOP) => {
                     cycles -= 1;
                     println!("nop")
@@ -193,6 +208,10 @@ impl RAM {
     fn read_byte(&mut self, address: usize) -> u8 {
         self.inner[address]
     }
+
+    fn write_byte(&mut self, address: usize, byte: u8) {
+        self.inner[address] = byte;
+    }
 }
 
 fn main() {
@@ -206,9 +225,12 @@ fn main() {
     ram[0x8004] = Instruction::NOP.into();
     ram[0x8005] = Instruction::NOP.into();
     ram[0x8006] = Instruction::NOP.into();
+    ram[0x8007] = Instruction::STA_ZP.into();
+    ram[0x8008] = 0x43;
     ram[0xFFFC] = 0x00;
     ram[0xFFFD] = 0x80;
     ram[0x42] = 0x84;
-    cpu.execute(13, &mut ram);
+    cpu.execute(16, &mut ram);
     println!("CPU: {:?}", cpu);
+    println!("RAM: {:?}", ram[0x43]);
 }
