@@ -21,7 +21,7 @@ enum AddressingMode {
     ZeroPageY,
     // Relative,
     Absolute,
-    // AbsoluteX,
+    AbsoluteX,
     // AbsoluteY,
     // Indirect,
     // IndexedIndirect,
@@ -53,6 +53,12 @@ impl AddressingMode {
 
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
+            AbsoluteX => {
+                let addr = cpu.fetch_byte(cycles, ram) as u16
+                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
+                    + cpu.x as u16;
+                Some(cpu.read_byte(cycles, ram, addr as usize))
+            }
         }
     }
 
@@ -71,6 +77,12 @@ impl AddressingMode {
                 let addr = cpu.fetch_byte(cycles, ram) as u16
                     + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
 
+                Some(addr)
+            }
+            AbsoluteX => {
+                let addr = cpu.fetch_byte(cycles, ram) as u16
+                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
+                    + cpu.x as u16;
                 Some(addr)
             }
             _ => panic!("You can't call get_address from {:?}!", self),
@@ -278,7 +290,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $9A    TXS          Implied
     None,                         // $9B
     None,                         // $9C
-    None,                         // $9D    STA $NNNN,X  AbsoluteX
+    Some(OpCode(STA, AbsoluteX)), // $9D    STA $NNNN,X  AbsoluteX
     None,                         // $9E
     None,                         // $9F
     Some(OpCode(LDY, Immediate)), // $A0    LDY #$NN     Immediate
@@ -309,8 +321,8 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $B9    LDA $NNNN,Y  AbsoluteY
     None,                         // $BA    TSX          Implied
     None,                         // $BB
-    None,                         // $BC    LDY $NNNN,X  AbsoluteX
-    None,                         // $BD    LDA $NNNN,X  AbsoluteX
+    Some(OpCode(LDY, AbsoluteX)), // $BC    LDY $NNNN,X  AbsoluteX
+    Some(OpCode(LDA, AbsoluteX)), // $BD    LDA $NNNN,X  AbsoluteX
     None,                         // $BE    LDX $NNNN,Y  AbsoluteY
     None,                         // $BF
     None,                         // $C0    CPY #$NN     Immediate
@@ -464,6 +476,25 @@ mod test_addressing_modes {
         cpu.pc = 0x8000;
         let addr = AddressingMode::Absolute.get_address(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(addr, Some(0x0100));
+    }
+
+    #[test]
+    fn test_absolute_x() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.x = 1;
+        ram[0x8000] = 0x00;
+        ram[0x8001] = 0x01;
+        ram[0x0101] = 0x42;
+        let byte = AddressingMode::AbsoluteX.fetch(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(byte, Some(0x42));
+
+        cpu.pc = 0x8000;
+        let addr = AddressingMode::AbsoluteX.get_address(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(addr, Some(0x0101));
     }
 }
 
