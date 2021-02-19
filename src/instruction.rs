@@ -23,7 +23,7 @@ enum AddressingMode {
     Absolute,
     AbsoluteX,
     AbsoluteY,
-    // Indirect,
+    Indirect,
     // IndexedIndirect,
     // IndirectIndexed,
 }
@@ -65,6 +65,7 @@ impl AddressingMode {
                     + cpu.y as u16;
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
+            _ => panic!("You can't call fetch from {:?}!", self),
         }
     }
 
@@ -95,6 +96,13 @@ impl AddressingMode {
                 let addr = cpu.fetch_byte(cycles, ram) as u16
                     + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
                     + cpu.y as u16;
+                Some(addr)
+            }
+            Indirect => {
+                let ind_addr = cpu.fetch_byte(cycles, ram) as u16
+                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
+                let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
+                    + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8);
                 Some(addr)
             }
             _ => panic!("You can't call get_address from {:?}!", self),
@@ -526,6 +534,23 @@ mod test_addressing_modes {
         cpu.pc = 0x8000;
         let addr = AddressingMode::AbsoluteY.get_address(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(addr, Some(0x0101));
+    }
+
+    #[test]
+    fn test_indirect() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.y = 1;
+        ram[0x8000] = 0x02;
+        ram[0x8001] = 0x01;
+        ram[0x0102] = 0x04;
+        ram[0x0103] = 0x03;
+        let byte = AddressingMode::Indirect.get_address(&mut cpu, &mut cycles, &mut ram);
+
+        assert_eq!(byte, Some(0x0304));
     }
 }
 
