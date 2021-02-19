@@ -22,7 +22,7 @@ enum AddressingMode {
     // Relative,
     Absolute,
     AbsoluteX,
-    // AbsoluteY,
+    AbsoluteY,
     // Indirect,
     // IndexedIndirect,
     // IndirectIndexed,
@@ -59,6 +59,12 @@ impl AddressingMode {
                     + cpu.x as u16;
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
+            AbsoluteY => {
+                let addr = cpu.fetch_byte(cycles, ram) as u16
+                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
+                    + cpu.y as u16;
+                Some(cpu.read_byte(cycles, ram, addr as usize))
+            }
         }
     }
 
@@ -83,6 +89,12 @@ impl AddressingMode {
                 let addr = cpu.fetch_byte(cycles, ram) as u16
                     + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
                     + cpu.x as u16;
+                Some(addr)
+            }
+            AbsoluteY => {
+                let addr = cpu.fetch_byte(cycles, ram) as u16
+                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
+                    + cpu.y as u16;
                 Some(addr)
             }
             _ => panic!("You can't call get_address from {:?}!", self),
@@ -286,7 +298,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $96    STX $NN,Y    Zero Page,Y
     None,                         // $97
     None,                         // $98    TYA          Implied
-    None,                         // $99    STA $NNNN,Y  AbsoluteY
+    Some(OpCode(STA, AbsoluteY)), // $99    STA $NNNN,Y  AbsoluteY
     None,                         // $9A    TXS          Implied
     None,                         // $9B
     None,                         // $9C
@@ -318,12 +330,12 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(LDX, ZeroPageY)), // $B6    LDX $NN,Y    Zero Page,Y
     None,                         // $B7
     None,                         // $B8    CLV          Implied
-    None,                         // $B9    LDA $NNNN,Y  AbsoluteY
+    Some(OpCode(LDA, AbsoluteY)), // $B9    LDA $NNNN,Y  AbsoluteY
     None,                         // $BA    TSX          Implied
     None,                         // $BB
     Some(OpCode(LDY, AbsoluteX)), // $BC    LDY $NNNN,X  AbsoluteX
     Some(OpCode(LDA, AbsoluteX)), // $BD    LDA $NNNN,X  AbsoluteX
-    None,                         // $BE    LDX $NNNN,Y  AbsoluteY
+    Some(OpCode(LDX, AbsoluteY)), // $BE    LDX $NNNN,Y  AbsoluteY
     None,                         // $BF
     None,                         // $C0    CPY #$NN     Immediate
     None,                         // $C1    CMP ($NN,X)  Indexed Indirect
@@ -494,6 +506,25 @@ mod test_addressing_modes {
 
         cpu.pc = 0x8000;
         let addr = AddressingMode::AbsoluteX.get_address(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(addr, Some(0x0101));
+    }
+
+    #[test]
+    fn test_absolute_y() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.y = 1;
+        ram[0x8000] = 0x00;
+        ram[0x8001] = 0x01;
+        ram[0x0101] = 0x42;
+        let byte = AddressingMode::AbsoluteY.fetch(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(byte, Some(0x42));
+
+        cpu.pc = 0x8000;
+        let addr = AddressingMode::AbsoluteY.get_address(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(addr, Some(0x0101));
     }
 }
