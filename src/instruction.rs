@@ -314,7 +314,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $92
     None,                         // $93
     None,                         // $94    STY $NN,X    Zero Page,X
-    None,                         // $95    STA $NN,X    Zero Page,X
+    Some(OpCode(STA, ZeroPageY)), // $95    STA $NN,X    Zero Page,X
     Some(OpCode(STX, ZeroPageY)), // $96    STX $NN,Y    Zero Page,Y
     None,                         // $97
     None,                         // $98    TYA          Implied
