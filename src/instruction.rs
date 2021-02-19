@@ -1,4 +1,6 @@
-use crate::{CPU, RAM};
+use crate::cpu::CPU;
+use crate::ram::RAM;
+
 #[derive(Debug)]
 enum Instruction {
     LDA,
