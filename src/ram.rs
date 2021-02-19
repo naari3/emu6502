@@ -39,3 +39,32 @@ impl RAM {
         self.inner[address] = byte;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_index() {
+        let mut ram = RAM::default();
+        ram[0] = 0;
+        ram[1] = 1;
+        ram[2] = 2;
+        assert_eq!(ram.read_byte(0), 0);
+        assert_eq!(ram.read_byte(1), 1);
+        assert_eq!(ram.read_byte(2), 2);
+        assert_eq!(ram[0], 0);
+        assert_eq!(ram[1], 1);
+        assert_eq!(ram[2], 2);
+    }
+
+    #[test]
+    fn test_initialize() {
+        let mut ram = RAM::default();
+        ram[0] = 0xFF;
+        ram[MAX_MEMORY - 1] = 0xFF;
+        ram.initialize();
+        assert_eq!(ram.read_byte(0), 0);
+        assert_eq!(ram.read_byte(MAX_MEMORY - 1), 0);
+    }
+}
