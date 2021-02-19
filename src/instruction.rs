@@ -6,7 +6,10 @@ enum Instruction {
     LDA,
     LDX,
     LDY,
+
     STA,
+
+    JMP,
 
     NOP,
 }
@@ -141,6 +144,10 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.write_byte(cycles, ram, addr as usize, cpu.a);
             }
+            JMP => {
+                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                cpu.pc = addr;
+            }
             NOP => {
                 *cycles -= 1;
                 println!("nop");
@@ -229,7 +236,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $49    EOR #$NN     Immediate
     None,                         // $4A    LSR A        Accumulator
     None,                         // $4B
-    None,                         // $4C    JMP $NNNN    Absolute
+    Some(OpCode(JMP, Absolute)),  // $4C    JMP $NNNN    Absolute
     None,                         // $4D    EOR $NNNN    Absolute
     None,                         // $4E    LSR $NNNN    Absolute
     None,                         // $4F
@@ -261,7 +268,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $69    ADC #$NN     Immediate
     None,                         // $6A    ROR A        Accumulator
     None,                         // $6B
-    None,                         // $6C    JMP $NN      Indirect
+    Some(OpCode(JMP, Indirect)),  // $6C    JMP $NN      Indirect
     None,                         // $6D    ADC $NNNN    Absolute
     None,                         // $6E    ROR $NNNN,X  AbsoluteX
     None,                         // $6F
@@ -689,6 +696,27 @@ mod test_instructions {
         ram[0x8000] = 0x0;
         OpCode(Instruction::STA, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(ram[0x0], 0x42);
+    }
+
+    #[test]
+    fn test_jmp() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x02;
+        ram[0x8001] = 0x01;
+        OpCode(Instruction::JMP, AddressingMode::Absolute).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x0102);
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x02;
+        ram[0x8001] = 0x01;
+        ram[0x0102] = 0x04;
+        ram[0x0103] = 0x03;
+        OpCode(Instruction::JMP, AddressingMode::Indirect).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x0304);
     }
 
     #[test]
