@@ -13,6 +13,8 @@ enum Instruction {
 
     TAX,
     TAY,
+    TXA,
+    TYA,
 
     JMP,
 
@@ -169,6 +171,18 @@ impl OpCode {
                 cpu.flags.n = cpu.y >> 6 & 1 == 1;
                 *cycles -= 1;
             }
+            TXA => {
+                cpu.a = cpu.x;
+                cpu.flags.z = cpu.a == 0;
+                cpu.flags.n = cpu.a >> 6 & 1 == 1;
+                *cycles -= 1;
+            }
+            TYA => {
+                cpu.a = cpu.y;
+                cpu.flags.z = cpu.a == 0;
+                cpu.flags.n = cpu.a >> 6 & 1 == 1;
+                *cycles -= 1;
+            }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
@@ -323,7 +337,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $87
     None,                         // $88    DEY          Implied
     None,                         // $89
-    None,                         // $8A    TXA          Implied
+    Some(OpCode(TXA, Implied)),   // $8A    TXA          Implied
     None,                         // $8B
     Some(OpCode(STY, Absolute)),  // $8C    STY $NNNN    Absolute
     Some(OpCode(STA, Absolute)),  // $8D    STA $NNNN    Absolute
@@ -337,7 +351,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(STA, ZeroPageY)), // $95    STA $NN,X    Zero Page,X
     Some(OpCode(STX, ZeroPageY)), // $96    STX $NN,Y    Zero Page,Y
     None,                         // $97
-    None,                         // $98    TYA          Implied
+    Some(OpCode(TYA, Implied)),   // $98    TYA          Implied
     Some(OpCode(STA, AbsoluteY)), // $99    STA $NNNN,Y  AbsoluteY
     None,                         // $9A    TXS          Implied
     None,                         // $9B
@@ -771,6 +785,30 @@ mod test_instructions {
         cpu.y = 0;
         OpCode(Instruction::TAY, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(cpu.y, 0x42);
+    }
+
+    #[test]
+    fn test_txa() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.x = 0x42;
+        cpu.a = 0;
+        OpCode(Instruction::TXA, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.a, 0x42);
+    }
+
+    #[test]
+    fn test_tya() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.y = 0x42;
+        cpu.a = 0;
+        OpCode(Instruction::TYA, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.a, 0x42);
     }
 
     #[test]
