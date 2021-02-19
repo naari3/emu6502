@@ -10,7 +10,7 @@ enum Instruction {
 }
 
 #[derive(Debug)]
-enum AdressingMode {
+enum AddressingMode {
     Implied,
     // Accumulator,
     Immediate,
@@ -26,7 +26,7 @@ enum AdressingMode {
     // IndirectIndexed,
 }
 
-impl AdressingMode {
+impl AddressingMode {
     fn fetch(&self, cpu: &mut CPU, cycles: &mut isize, ram: &mut RAM) -> Option<u8> {
         match self {
             Implied => None,
@@ -76,7 +76,7 @@ impl AdressingMode {
     }
 }
 
-pub struct OpCode(Instruction, AdressingMode);
+pub struct OpCode(Instruction, AddressingMode);
 
 impl OpCode {
     pub fn execute(&self, cpu: &mut CPU, cycles: &mut isize, ram: &mut RAM) {
@@ -115,7 +115,7 @@ impl OpCode {
     }
 }
 
-use AdressingMode::*;
+use AddressingMode::*;
 use Instruction::*;
 #[allow(dead_code)]
 pub const OPCODES: [Option<OpCode>; 0x100] = [
