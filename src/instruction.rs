@@ -146,12 +146,12 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $16    ASL $NN,X    Zero Page,X
     None,                         // $17
     None,                         // $18    CLC          Implied
-    None,                         // $19    ORA $NNNN,Y  Absolute,Y
+    None,                         // $19    ORA $NNNN,Y  AbsoluteY
     None,                         // $1A
     None,                         // $1B
     None,                         // $1C
-    None,                         // $1D    ORA $NNNN,X  Absolute,X
-    None,                         // $1E    ASL $NNNN,X  Absolute,X
+    None,                         // $1D    ORA $NNNN,X  AbsoluteX
+    None,                         // $1E    ASL $NNNN,X  AbsoluteX
     None,                         // $1F
     None,                         // $20    JSR $NNNN    Absolute
     None,                         // $21    AND ($NN,X)  Indexed Indirect
@@ -178,12 +178,12 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $36    ROL $NN,X    Zero Page,X
     None,                         // $37
     None,                         // $38    SEC          Implied
-    None,                         // $39    AND $NNNN,Y  Absolute,Y
+    None,                         // $39    AND $NNNN,Y  AbsoluteY
     None,                         // $3A
     None,                         // $3B
     None,                         // $3C
-    None,                         // $3D    AND $NNNN,X  Absolute,X
-    None,                         // $3E    ROL $NNNN,X  Absolute,X
+    None,                         // $3D    AND $NNNN,X  AbsoluteX
+    None,                         // $3E    ROL $NNNN,X  AbsoluteX
     None,                         // $3F
     None,                         // $40    RTI          Implied
     None,                         // $41    EOR ($NN,X)  Indexed Indirect
@@ -210,12 +210,12 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $56    LSR $NN,X    Zero Page,X
     None,                         // $57
     None,                         // $58    CLI          Implied
-    None,                         // $59    EOR $NNNN,Y  Absolute,Y
+    None,                         // $59    EOR $NNNN,Y  AbsoluteY
     None,                         // $5A
     None,                         // $5B
     None,                         // $5C
-    None,                         // $5D    EOR $NNNN,X  Absolute,X
-    None,                         // $5E    LSR $NNNN,X  Absolute,X
+    None,                         // $5D    EOR $NNNN,X  AbsoluteX
+    None,                         // $5E    LSR $NNNN,X  AbsoluteX
     None,                         // $5F
     None,                         // $60    RTS          Implied
     None,                         // $61    ADC ($NN,X)  Indexed Indirect
@@ -231,7 +231,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $6B
     None,                         // $6C    JMP $NN      Indirect
     None,                         // $6D    ADC $NNNN    Absolute
-    None,                         // $6E    ROR $NNNN,X  Absolute,X
+    None,                         // $6E    ROR $NNNN,X  AbsoluteX
     None,                         // $6F
     None,                         // $70    BVS $NN      Relative
     None,                         // $71    ADC ($NN),Y  Indirect Indexed
@@ -242,11 +242,11 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $76    ROR $NN,X    Zero Page,X
     None,                         // $77
     None,                         // $78    SEI          Implied
-    None,                         // $79    ADC $NNNN,Y  Absolute,Y
+    None,                         // $79    ADC $NNNN,Y  AbsoluteY
     None,                         // $7A
     None,                         // $7B
     None,                         // $7C
-    None,                         // $7D    ADC $NNNN,X  Absolute,X
+    None,                         // $7D    ADC $NNNN,X  AbsoluteX
     None,                         // $7E    ROR $NNNN    Absolute
     None,                         // $7F
     None,                         // $80
@@ -274,11 +274,11 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $96    STX $NN,Y    Zero Page,Y
     None,                         // $97
     None,                         // $98    TYA          Implied
-    None,                         // $99    STA $NNNN,Y  Absolute,Y
+    None,                         // $99    STA $NNNN,Y  AbsoluteY
     None,                         // $9A    TXS          Implied
     None,                         // $9B
     None,                         // $9C
-    None,                         // $9D    STA $NNNN,X  Absolute,X
+    None,                         // $9D    STA $NNNN,X  AbsoluteX
     None,                         // $9E
     None,                         // $9F
     Some(OpCode(LDY, Immediate)), // $A0    LDY #$NN     Immediate
@@ -306,12 +306,12 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(LDX, ZeroPageY)), // $B6    LDX $NN,Y    Zero Page,Y
     None,                         // $B7
     None,                         // $B8    CLV          Implied
-    None,                         // $B9    LDA $NNNN,Y  Absolute,Y
+    None,                         // $B9    LDA $NNNN,Y  AbsoluteY
     None,                         // $BA    TSX          Implied
     None,                         // $BB
-    None,                         // $BC    LDY $NNNN,X  Absolute,X
-    None,                         // $BD    LDA $NNNN,X  Absolute,X
-    None,                         // $BE    LDX $NNNN,Y  Absolute,Y
+    None,                         // $BC    LDY $NNNN,X  AbsoluteX
+    None,                         // $BD    LDA $NNNN,X  AbsoluteX
+    None,                         // $BE    LDX $NNNN,Y  AbsoluteY
     None,                         // $BF
     None,                         // $C0    CPY #$NN     Immediate
     None,                         // $C1    CMP ($NN,X)  Indexed Indirect
@@ -338,12 +338,12 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $D6    DEC $NN,X    Zero Page,X
     None,                         // $D7
     None,                         // $D8    CLD          Implied
-    None,                         // $D9    CMP $NNNN,Y  Absolute,Y
+    None,                         // $D9    CMP $NNNN,Y  AbsoluteY
     None,                         // $DA
     None,                         // $DB
     None,                         // $DC
-    None,                         // $DD    CMP $NNNN,X  Absolute,X
-    None,                         // $DE    DEC $NNNN,X  Absolute,X
+    None,                         // $DD    CMP $NNNN,X  AbsoluteX
+    None,                         // $DE    DEC $NNNN,X  AbsoluteX
     None,                         // $DF
     None,                         // $E0    CPX #$NN     Immediate
     None,                         // $E1    SBC ($NN,X)  Indexed Indirect
@@ -370,12 +370,12 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $F6    INC $NN,X    Zero Page,X
     None,                         // $F7
     None,                         // $F8    SED          Implied
-    None,                         // $F9    SBC $NNNN,Y  Absolute,Y
+    None,                         // $F9    SBC $NNNN,Y  AbsoluteY
     None,                         // $FA
     None,                         // $FB
     None,                         // $FC
-    None,                         // $FD    SBC $NNNN,X  Absolute,X
-    None,                         // $FE    INC $NNNN,X  Absolute,X
+    None,                         // $FD    SBC $NNNN,X  AbsoluteX
+    None,                         // $FE    INC $NNNN,X  AbsoluteX
     None,                         // $FF
 ];
 
