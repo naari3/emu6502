@@ -380,11 +380,11 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
 ];
 
 #[cfg(test)]
-mod tests {
+mod test_addressing_modes {
     use super::*;
 
     #[test]
-    fn test_addressing_mode_immediate() {
+    fn test_immediate() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
         let mut cycles = 999;
@@ -396,7 +396,7 @@ mod tests {
     }
 
     #[test]
-    fn test_addressing_mode_zero_page() {
+    fn test_zero_page() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
         let mut cycles = 999;
@@ -413,7 +413,7 @@ mod tests {
     }
 
     #[test]
-    fn test_addressing_mode_zero_page_x() {
+    fn test_zero_page_x() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
         let mut cycles = 999;
@@ -431,7 +431,7 @@ mod tests {
     }
 
     #[test]
-    fn test_addressing_mode_zero_page_y() {
+    fn test_zero_page_y() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
         let mut cycles = 999;
@@ -449,7 +449,7 @@ mod tests {
     }
 
     #[test]
-    fn test_addressing_mode_absolute() {
+    fn test_absolute() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
         let mut cycles = 999;
