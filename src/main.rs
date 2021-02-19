@@ -1,10 +1,12 @@
-use num_enum::{IntoPrimitive, TryFromPrimitive};
-use std::convert::TryFrom;
 use std::ops::{Index, IndexMut};
+
+mod instruction;
+
+use instruction::OPCODES;
 
 // http://www.obelisk.me.uk/6502/registers.html
 #[derive(Debug, Default)]
-struct CPU {
+pub struct CPU {
     pc: u16, // Program Counter
     sp: u8,  // Stack Pointer
 
@@ -25,28 +27,6 @@ struct StatusFlag {
     v: bool, // Overflow Flag
     n: bool, // Negative Flag
 }
-
-#[allow(non_camel_case_types)]
-#[derive(Debug, TryFromPrimitive, IntoPrimitive)]
-#[repr(u8)]
-enum Instruction {
-    LDA_IM = 0xA9,
-    LDA_ZP = 0xA5,
-    LDA_ZPX = 0xB5,
-
-    LDX_IM = 0xA2,
-    LDX_ZP = 0xA6,
-    LDX_ZPY = 0xB6,
-
-    LDY_IM = 0xA0,
-    LDY_ZP = 0xA4,
-    LDY_ZPX = 0xB4,
-
-    STA_ZP = 0x85,
-
-    NOP = 0xEA,
-}
-#[warn(non_camel_case_types)]
 
 trait Instruct {
     fn execute(&self, cpu: &mut CPU, cycles: isize, ram: &mut RAM);
@@ -93,89 +73,18 @@ impl CPU {
         let addr_high = self.fetch_byte(&mut cycles, ram);
         self.pc = ((addr_high as u16) << 8) + (addr_low as u16);
         while cycles > 0 {
-            let ins = self.fetch_byte(&mut cycles, ram);
-
-            use Instruction::*;
-            match Instruction::try_from(ins) {
-                Ok(LDA_IM) => {
-                    let byte = self.fetch_byte(&mut cycles, ram);
-                    self.a = byte;
-                    self.flags.z = byte == 0;
-                    self.flags.n = byte >> 6 & 1 == 1
-                }
-                Ok(LDA_ZP) => {
-                    let addr = self.fetch_byte(&mut cycles, ram);
-                    let byte = self.read_byte(&mut cycles, ram, addr as usize);
-                    self.a = byte;
-                    self.flags.z = byte == 0;
-                    self.flags.n = byte >> 6 & 1 == 1
-                }
-                Ok(LDA_ZPX) => {
-                    let addr = self.fetch_byte(&mut cycles, ram);
-                    let byte = self.read_byte(&mut cycles, ram, (addr + self.x) as usize);
-                    cycles -= 1; // may be consumed by add x
-                    self.a = byte;
-                    self.flags.z = byte == 0;
-                    self.flags.n = byte >> 6 & 1 == 1
-                }
-                Ok(LDX_IM) => {
-                    let byte = self.fetch_byte(&mut cycles, ram);
-                    self.x = byte;
-                    self.flags.z = byte == 0;
-                    self.flags.n = byte >> 6 & 1 == 1
-                }
-                Ok(LDX_ZP) => {
-                    let addr = self.fetch_byte(&mut cycles, ram);
-                    let byte = self.read_byte(&mut cycles, ram, addr as usize);
-                    self.x = byte;
-                    self.flags.z = byte == 0;
-                    self.flags.n = byte >> 6 & 1 == 1
-                }
-                Ok(LDX_ZPY) => {
-                    let addr = self.fetch_byte(&mut cycles, ram);
-                    let byte = self.read_byte(&mut cycles, ram, (addr + self.y) as usize);
-                    cycles -= 1; // may be consumed by add y
-                    self.x = byte;
-                    self.flags.z = byte == 0;
-                    self.flags.n = byte >> 6 & 1 == 1
-                }
-                Ok(LDY_IM) => {
-                    let byte = self.fetch_byte(&mut cycles, ram);
-                    self.y = byte;
-                    self.flags.z = byte == 0;
-                    self.flags.n = byte >> 6 & 1 == 1
-                }
-                Ok(LDY_ZP) => {
-                    let addr = self.fetch_byte(&mut cycles, ram);
-                    let byte = self.read_byte(&mut cycles, ram, addr as usize);
-                    self.y = byte;
-                    self.flags.z = byte == 0;
-                    self.flags.n = byte >> 6 & 1 == 1
-                }
-                Ok(LDY_ZPX) => {
-                    let addr = self.fetch_byte(&mut cycles, ram);
-                    let byte = self.read_byte(&mut cycles, ram, (addr + self.x) as usize);
-                    cycles -= 1; // may be consumed by add x
-                    self.y = byte;
-                    self.flags.z = byte == 0;
-                    self.flags.n = byte >> 6 & 1 == 1
-                }
-                Ok(STA_ZP) => {
-                    let addr = self.fetch_byte(&mut cycles, ram);
-                    self.write_byte(&mut cycles, ram, addr as usize, self.a);
-                }
-                Ok(NOP) => {
-                    cycles -= 1;
-                    println!("nop")
-                }
-                Err(_) => println!("does not match!"),
+            let op = self.fetch_byte(&mut cycles, ram) as usize;
+            if let Some(op) = &OPCODES[op] {
+                op.execute(self, &mut cycles, ram);
+            } else {
+                panic!("{:#01x} is not implemented!", op);
             }
         }
     }
 }
 
 const MAX_MEMORY: usize = 0x100 * 0x100;
-struct RAM {
+pub struct RAM {
     inner: [u8; MAX_MEMORY],
 }
 
@@ -218,19 +127,21 @@ fn main() {
     let mut cpu = CPU::default();
     let mut ram = RAM::default();
     cpu.reset(&mut ram);
-    ram[0x8000] = Instruction::LDX_IM.into();
+    ram[0x8000] = 0xA2; // LDX #$02
     ram[0x8001] = 0x2;
-    ram[0x8002] = Instruction::LDA_ZPX.into();
+    ram[0x8002] = 0xB5; // LDA $40,x => should be $42
     ram[0x8003] = 0x40;
-    ram[0x8004] = Instruction::NOP.into();
-    ram[0x8005] = Instruction::NOP.into();
-    ram[0x8006] = Instruction::NOP.into();
-    ram[0x8007] = Instruction::STA_ZP.into();
+    ram[0x8004] = 0xEA; // NOP
+    ram[0x8005] = 0xEA; // NOP
+    ram[0x8006] = 0xEA; // NOP
+    ram[0x8007] = 0x85; // STA $43
     ram[0x8008] = 0x43;
+
     ram[0xFFFC] = 0x00;
     ram[0xFFFD] = 0x80;
+
     ram[0x42] = 0x84;
-    cpu.execute(16, &mut ram);
+    cpu.execute(17, &mut ram);
     println!("CPU: {:?}", cpu);
     println!("RAM: {:?}", ram[0x43]);
 }
