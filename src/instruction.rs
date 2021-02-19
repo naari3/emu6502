@@ -9,6 +9,7 @@ enum Instruction {
 
     STA,
     STX,
+    STY,
 
     JMP,
 
@@ -148,6 +149,10 @@ impl OpCode {
             STX => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.write_byte(cycles, ram, addr as usize, cpu.x);
+            }
+            STY => {
+                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                cpu.write_byte(cycles, ram, addr as usize, cpu.y);
             }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
@@ -297,7 +302,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $81    STA ($NN,X)  IndexedIndirect
     None,                         // $82
     None,                         // $83
-    None,                         // $84    STY $NN      Zero Page
+    Some(OpCode(STY, ZeroPage)),  // $84    STY $NN      Zero Page
     Some(OpCode(STA, ZeroPage)),  // $85    STA $NN      Zero Page
     Some(OpCode(STX, ZeroPage)),  // $86    STX $NN      Zero Page
     None,                         // $87
@@ -305,7 +310,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $89
     None,                         // $8A    TXA          Implied
     None,                         // $8B
-    None,                         // $8C    STY $NNNN    Absolute
+    Some(OpCode(STY, Absolute)),  // $8C    STY $NNNN    Absolute
     Some(OpCode(STA, Absolute)),  // $8D    STA $NNNN    Absolute
     Some(OpCode(STX, Absolute)),  // $8E    STX $NNNN    Absolute
     None,                         // $8F
@@ -313,7 +318,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $91    STA ($NN),Y  IndirectIndexed
     None,                         // $92
     None,                         // $93
-    None,                         // $94    STY $NN,X    Zero Page,X
+    Some(OpCode(STY, ZeroPageX)), // $94    STY $NN,X    Zero Page,X
     Some(OpCode(STA, ZeroPageY)), // $95    STA $NN,X    Zero Page,X
     Some(OpCode(STX, ZeroPageY)), // $96    STX $NN,Y    Zero Page,Y
     None,                         // $97
@@ -713,6 +718,19 @@ mod test_instructions {
         cpu.x = 0x42;
         ram[0x8000] = 0x0;
         OpCode(Instruction::STX, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(ram[0x0], 0x42);
+    }
+
+    #[test]
+    fn test_sty() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.y = 0x42;
+        ram[0x8000] = 0x0;
+        OpCode(Instruction::STY, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(ram[0x0], 0x42);
     }
 
