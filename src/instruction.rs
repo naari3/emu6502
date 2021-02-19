@@ -466,3 +466,141 @@ mod test_addressing_modes {
         assert_eq!(addr, Some(0x0100));
     }
 }
+
+#[cfg(test)]
+mod test_instructions {
+    use super::*;
+
+    #[test]
+    fn test_lda() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0b01000010; // eq to 0x42
+        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0b01000010);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, true);
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0;
+        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0);
+        assert_eq!(cpu.flags.z, true);
+        assert_eq!(cpu.flags.n, false);
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 1;
+        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 1);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, false);
+    }
+
+    #[test]
+    fn test_ldx() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0b01000010; // eq to 0x42
+        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.x, 0b01000010);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, true);
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0;
+        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.x, 0);
+        assert_eq!(cpu.flags.z, true);
+        assert_eq!(cpu.flags.n, false);
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 1;
+        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.x, 1);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, false);
+    }
+
+    #[test]
+    fn test_ldy() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0b01000010; // eq to 0x42
+        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.y, 0b01000010);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, true);
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0;
+        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.y, 0);
+        assert_eq!(cpu.flags.z, true);
+        assert_eq!(cpu.flags.n, false);
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 1;
+        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.y, 1);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, false);
+    }
+
+    #[test]
+    fn test_sta() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.a = 0x42;
+        ram[0x8000] = 0x0;
+        OpCode(Instruction::STA, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(ram[0x0], 0x42);
+    }
+}
