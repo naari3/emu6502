@@ -107,260 +107,260 @@ use AdressingMode::*;
 use Instruction::*;
 #[allow(dead_code)]
 pub const OPCODES: [Option<OpCode>; 0x100] = [
-    None,                         // 0x0
-    None,                         // 0x1
-    None,                         // 0x2
-    None,                         // 0x3
-    None,                         // 0x4
-    None,                         // 0x5
-    None,                         // 0x6
-    None,                         // 0x7
-    None,                         // 0x8
-    None,                         // 0x9
-    None,                         // 0xA
-    None,                         // 0xB
-    None,                         // 0xC
-    None,                         // 0xD
-    None,                         // 0xE
-    None,                         // 0xF
-    None,                         // 0x10
-    None,                         // 0x11
-    None,                         // 0x12
-    None,                         // 0x13
-    None,                         // 0x14
-    None,                         // 0x15
-    None,                         // 0x16
-    None,                         // 0x17
-    None,                         // 0x18
-    None,                         // 0x19
-    None,                         // 0x1A
-    None,                         // 0x1B
-    None,                         // 0x1C
-    None,                         // 0x1D
-    None,                         // 0x1E
-    None,                         // 0x1F
-    None,                         // 0x20
-    None,                         // 0x21
-    None,                         // 0x22
-    None,                         // 0x23
-    None,                         // 0x24
-    None,                         // 0x25
-    None,                         // 0x26
-    None,                         // 0x27
-    None,                         // 0x28
-    None,                         // 0x29
-    None,                         // 0x2A
-    None,                         // 0x2B
-    None,                         // 0x2C
-    None,                         // 0x2D
-    None,                         // 0x2E
-    None,                         // 0x2F
-    None,                         // 0x30
-    None,                         // 0x31
-    None,                         // 0x32
-    None,                         // 0x33
-    None,                         // 0x34
-    None,                         // 0x35
-    None,                         // 0x36
-    None,                         // 0x37
-    None,                         // 0x38
-    None,                         // 0x39
-    None,                         // 0x3A
-    None,                         // 0x3B
-    None,                         // 0x3C
-    None,                         // 0x3D
-    None,                         // 0x3E
-    None,                         // 0x3F
-    None,                         // 0x40
-    None,                         // 0x41
-    None,                         // 0x42
-    None,                         // 0x43
-    None,                         // 0x44
-    None,                         // 0x45
-    None,                         // 0x46
-    None,                         // 0x47
-    None,                         // 0x48
-    None,                         // 0x49
-    None,                         // 0x4A
-    None,                         // 0x4B
-    None,                         // 0x4C
-    None,                         // 0x4D
-    None,                         // 0x4E
-    None,                         // 0x4F
-    None,                         // 0x50
-    None,                         // 0x51
-    None,                         // 0x52
-    None,                         // 0x53
-    None,                         // 0x54
-    None,                         // 0x55
-    None,                         // 0x56
-    None,                         // 0x57
-    None,                         // 0x58
-    None,                         // 0x59
-    None,                         // 0x5A
-    None,                         // 0x5B
-    None,                         // 0x5C
-    None,                         // 0x5D
-    None,                         // 0x5E
-    None,                         // 0x5F
-    None,                         // 0x60
-    None,                         // 0x61
-    None,                         // 0x62
-    None,                         // 0x63
-    None,                         // 0x64
-    None,                         // 0x65
-    None,                         // 0x66
-    None,                         // 0x67
-    None,                         // 0x68
-    None,                         // 0x69
-    None,                         // 0x6A
-    None,                         // 0x6B
-    None,                         // 0x6C
-    None,                         // 0x6D
-    None,                         // 0x6E
-    None,                         // 0x6F
-    None,                         // 0x70
-    None,                         // 0x71
-    None,                         // 0x72
-    None,                         // 0x73
-    None,                         // 0x74
-    None,                         // 0x75
-    None,                         // 0x76
-    None,                         // 0x77
-    None,                         // 0x78
-    None,                         // 0x79
-    None,                         // 0x7A
-    None,                         // 0x7B
-    None,                         // 0x7C
-    None,                         // 0x7D
-    None,                         // 0x7E
-    None,                         // 0x7F
-    None,                         // 0x80
-    None,                         // 0x81
-    None,                         // 0x82
-    None,                         // 0x83
-    None,                         // 0x84
-    Some(OpCode(STA, ZeroPage)),  // 0x85
-    None,                         // 0x86
-    None,                         // 0x87
-    None,                         // 0x88
-    None,                         // 0x89
-    None,                         // 0x8A
-    None,                         // 0x8B
-    None,                         // 0x8C
-    None,                         // 0x8D
-    None,                         // 0x8E
-    None,                         // 0x8F
-    None,                         // 0x90
-    None,                         // 0x91
-    None,                         // 0x92
-    None,                         // 0x93
-    None,                         // 0x94
-    None,                         // 0x95
-    None,                         // 0x96
-    None,                         // 0x97
-    None,                         // 0x98
-    None,                         // 0x99
-    None,                         // 0x9A
-    None,                         // 0x9B
-    None,                         // 0x9C
-    None,                         // 0x9D
-    None,                         // 0x9E
-    None,                         // 0x9F
-    Some(OpCode(LDY, Immediate)), // 0xA0
-    None,                         // 0xA1
-    Some(OpCode(LDX, Immediate)), // 0xA2
-    None,                         // 0xA3
-    Some(OpCode(LDY, ZeroPage)),  // 0xA4
-    Some(OpCode(LDA, ZeroPage)),  // 0xA5
-    Some(OpCode(LDX, ZeroPage)),  // 0xA6
-    None,                         // 0xA7
-    None,                         // 0xA8
-    Some(OpCode(LDA, Immediate)), // 0xA9
-    None,                         // 0xAA
-    None,                         // 0xAB
-    None,                         // 0xAC
-    None,                         // 0xAD
-    None,                         // 0xAE
-    None,                         // 0xAF
-    None,                         // 0xB0
-    None,                         // 0xB1
-    None,                         // 0xB2
-    None,                         // 0xB3
-    Some(OpCode(LDY, ZeroPageX)), // 0xB4
-    Some(OpCode(LDA, ZeroPageX)), // 0xB5
-    Some(OpCode(LDX, ZeroPageY)), // 0xB6
-    None,                         // 0xB7
-    None,                         // 0xB8
-    None,                         // 0xB9
-    None,                         // 0xBA
-    None,                         // 0xBB
-    None,                         // 0xBC
-    None,                         // 0xBD
-    None,                         // 0xBE
-    None,                         // 0xBF
-    None,                         // 0xC0
-    None,                         // 0xC1
-    None,                         // 0xC2
-    None,                         // 0xC3
-    None,                         // 0xC4
-    None,                         // 0xC5
-    None,                         // 0xC6
-    None,                         // 0xC7
-    None,                         // 0xC8
-    None,                         // 0xC9
-    None,                         // 0xCA
-    None,                         // 0xCB
-    None,                         // 0xCC
-    None,                         // 0xCD
-    None,                         // 0xCE
-    None,                         // 0xCF
-    None,                         // 0xD0
-    None,                         // 0xD1
-    None,                         // 0xD2
-    None,                         // 0xD3
-    None,                         // 0xD4
-    None,                         // 0xD5
-    None,                         // 0xD6
-    None,                         // 0xD7
-    None,                         // 0xD8
-    None,                         // 0xD9
-    None,                         // 0xDA
-    None,                         // 0xDB
-    None,                         // 0xDC
-    None,                         // 0xDD
-    None,                         // 0xDE
-    None,                         // 0xDF
-    None,                         // 0xE0
-    None,                         // 0xE1
-    None,                         // 0xE2
-    None,                         // 0xE3
-    None,                         // 0xE4
-    None,                         // 0xE5
-    None,                         // 0xE6
-    None,                         // 0xE7
-    None,                         // 0xE8
-    None,                         // 0xE9
-    Some(OpCode(NOP, Implied)),   // 0xEA
-    None,                         // 0xEB
-    None,                         // 0xEC
-    None,                         // 0xED
-    None,                         // 0xEE
-    None,                         // 0xEF
-    None,                         // 0xF0
-    None,                         // 0xF1
-    None,                         // 0xF2
-    None,                         // 0xF3
-    None,                         // 0xF4
-    None,                         // 0xF5
-    None,                         // 0xF6
-    None,                         // 0xF7
-    None,                         // 0xF8
-    None,                         // 0xF9
-    None,                         // 0xFA
-    None,                         // 0xFB
-    None,                         // 0xFC
-    None,                         // 0xFD
-    None,                         // 0xFE
-    None,                         // 0xFF
+    None,                         // $00    BRK	         Implied
+    None,                         // $01    ORA ($NN,X)  Indexed Indirect
+    None,                         // $02
+    None,                         // $03
+    None,                         // $04
+    None,                         // $05    ORA $NN      Zero Page
+    None,                         // $06    ASL $NN      Zero Page
+    None,                         // $07
+    None,                         // $08    PHP          Implied
+    None,                         // $09    ORA #$NN     Immediate
+    None,                         // $0A    ASL A        Accumulator
+    None,                         // $0B
+    None,                         // $0C
+    None,                         // $0D    ORA $NNNN    Absolute
+    None,                         // $0E    ASL $NNNN    Absolute
+    None,                         // $0F
+    None,                         // $10    BPL $NN      Relative
+    None,                         // $11    ORA ($NN),Y  Indirect Indexed
+    None,                         // $12
+    None,                         // $13
+    None,                         // $14
+    None,                         // $15    ORA $NN,X    Zero Page,X
+    None,                         // $16    ASL $NN,X    Zero Page,X
+    None,                         // $17
+    None,                         // $18    CLC          Implied
+    None,                         // $19    ORA $NNNN,Y  Absolute,Y
+    None,                         // $1A
+    None,                         // $1B
+    None,                         // $1C
+    None,                         // $1D    ORA $NNNN,X  Absolute,X
+    None,                         // $1E    ASL $NNNN,X  Absolute,X
+    None,                         // $1F
+    None,                         // $20    JSR $NNNN    Absolute
+    None,                         // $21    AND ($NN,X)  Indexed Indirect
+    None,                         // $22
+    None,                         // $23
+    None,                         // $24    BIT $NN      Zero Page
+    None,                         // $25    AND $NN      Zero Page
+    None,                         // $26    ROL $NN      Zero Page
+    None,                         // $27
+    None,                         // $28    PLP          Implied
+    None,                         // $29    AND #$NN     Immediate
+    None,                         // $2A    ROL A        Accumulator
+    None,                         // $2B
+    None,                         // $2C    BIT $NNNN    Absolute
+    None,                         // $2D    AND $NNNN    Absolute
+    None,                         // $2E    ROL $NNNN    Absolute
+    None,                         // $2F
+    None,                         // $30    BMI $NN      Relative
+    None,                         // $31    AND ($NN),Y  Indirect Indexed
+    None,                         // $32
+    None,                         // $33
+    None,                         // $34
+    None,                         // $35    AND $NN,X    Zero Page,X
+    None,                         // $36    ROL $NN,X    Zero Page,X
+    None,                         // $37
+    None,                         // $38    SEC          Implied
+    None,                         // $39    AND $NNNN,Y  Absolute,Y
+    None,                         // $3A
+    None,                         // $3B
+    None,                         // $3C
+    None,                         // $3D    AND $NNNN,X  Absolute,X
+    None,                         // $3E    ROL $NNNN,X  Absolute,X
+    None,                         // $3F
+    None,                         // $40    RTI          Implied
+    None,                         // $41    EOR ($NN,X)  Indexed Indirect
+    None,                         // $42
+    None,                         // $43
+    None,                         // $44
+    None,                         // $45    EOR $NN      Zero Page
+    None,                         // $46    LSR $NN      Zero Page
+    None,                         // $47
+    None,                         // $48    PHA          Implied
+    None,                         // $49    EOR #$NN     Immediate
+    None,                         // $4A    LSR A        Accumulator
+    None,                         // $4B
+    None,                         // $4C    JMP $NNNN    Absolute
+    None,                         // $4D    EOR $NNNN    Absolute
+    None,                         // $4E    LSR $NNNN    Absolute
+    None,                         // $4F
+    None,                         // $50    BVC $NN      Relative
+    None,                         // $51    EOR ($NN),Y  Indirect Indexed
+    None,                         // $52
+    None,                         // $53
+    None,                         // $54
+    None,                         // $55    EOR $NN,X    Zero Page,X
+    None,                         // $56    LSR $NN,X    Zero Page,X
+    None,                         // $57
+    None,                         // $58    CLI          Implied
+    None,                         // $59    EOR $NNNN,Y  Absolute,Y
+    None,                         // $5A
+    None,                         // $5B
+    None,                         // $5C
+    None,                         // $5D    EOR $NNNN,X  Absolute,X
+    None,                         // $5E    LSR $NNNN,X  Absolute,X
+    None,                         // $5F
+    None,                         // $60    RTS          Implied
+    None,                         // $61    ADC ($NN,X)  Indexed Indirect
+    None,                         // $62
+    None,                         // $63
+    None,                         // $64
+    None,                         // $65    ADC $NN      Zero Page
+    None,                         // $66    ROR $NN      Zero Page
+    None,                         // $67
+    None,                         // $68    PLA          Implied
+    None,                         // $69    ADC #$NN     Immediate
+    None,                         // $6A    ROR A        Accumulator
+    None,                         // $6B
+    None,                         // $6C    JMP $NN      Indirect
+    None,                         // $6D    ADC $NNNN    Absolute
+    None,                         // $6E    ROR $NNNN,X  Absolute,X
+    None,                         // $6F
+    None,                         // $70    BVS $NN      Relative
+    None,                         // $71    ADC ($NN),Y  Indirect Indexed
+    None,                         // $72
+    None,                         // $73
+    None,                         // $74
+    None,                         // $75    ADC $NN,X    Zero Page,X
+    None,                         // $76    ROR $NN,X    Zero Page,X
+    None,                         // $77
+    None,                         // $78    SEI          Implied
+    None,                         // $79    ADC $NNNN,Y  Absolute,Y
+    None,                         // $7A
+    None,                         // $7B
+    None,                         // $7C
+    None,                         // $7D    ADC $NNNN,X  Absolute,X
+    None,                         // $7E    ROR $NNNN    Absolute
+    None,                         // $7F
+    None,                         // $80
+    None,                         // $81    STA ($NN,X)  Indexed Indirect
+    None,                         // $82
+    None,                         // $83
+    None,                         // $84    STY $NN      Zero Page
+    Some(OpCode(STA, ZeroPage)),  // $85    STA $NN      Zero Page
+    None,                         // $86    STX $NN      Zero Page
+    None,                         // $87
+    None,                         // $88    DEY          Implied
+    None,                         // $89
+    None,                         // $8A    TXA          Implied
+    None,                         // $8B
+    None,                         // $8C    STY $NNNN    Absolute
+    None,                         // $8D    STA $NNNN    Absolute
+    None,                         // $8E    STX $NNNN    Absolute
+    None,                         // $8F
+    None,                         // $90    BCC $NN      Relative
+    None,                         // $91    STA ($NN),Y  Indirect Indexed
+    None,                         // $92
+    None,                         // $93
+    None,                         // $94    STY $NN,X    Zero Page,X
+    None,                         // $95    STA $NN,X    Zero Page,X
+    None,                         // $96    STX $NN,Y    Zero Page,Y
+    None,                         // $97
+    None,                         // $98    TYA          Implied
+    None,                         // $99    STA $NNNN,Y  Absolute,Y
+    None,                         // $9A    TXS          Implied
+    None,                         // $9B
+    None,                         // $9C
+    None,                         // $9D    STA $NNNN,X  Absolute,X
+    None,                         // $9E
+    None,                         // $9F
+    Some(OpCode(LDY, Immediate)), // $A0    LDY #$NN     Immediate
+    None,                         // $A1    LDA ($NN,X)  Indexed Indirect
+    Some(OpCode(LDX, Immediate)), // $A2    LDX #$NN     Immediate
+    None,                         // $A3
+    Some(OpCode(LDY, ZeroPage)),  // $A4    LDY $NN      Zero Page
+    Some(OpCode(LDA, ZeroPage)),  // $A5    LDA $NN      Zero Page
+    Some(OpCode(LDX, ZeroPage)),  // $A6    LDX $NN      Zero Page
+    None,                         // $A7
+    None,                         // $A8    TAY          Implied
+    Some(OpCode(LDA, Immediate)), // $A9    LDA #$NN     Immediate
+    None,                         // $AA    TAX          Implied
+    None,                         // $AB
+    None,                         // $AC    LDY $NNNN    Absolute
+    None,                         // $AD    LDA $NNNN    Absolute
+    None,                         // $AE    LDX $NNNN    Absolute
+    None,                         // $AF
+    None,                         // $B0    BCS $NN      Relative
+    None,                         // $B1    LDA ($NN),Y  Indirect Indexed
+    None,                         // $B2
+    None,                         // $B3
+    Some(OpCode(LDY, ZeroPageX)), // $B4    LDY $NN,X    Zero Page,X
+    Some(OpCode(LDA, ZeroPageX)), // $B5    LDA $NN,X    Zero Page,X
+    Some(OpCode(LDX, ZeroPageY)), // $B6    LDX $NN,Y    Zero Page,Y
+    None,                         // $B7
+    None,                         // $B8    CLV          Implied
+    None,                         // $B9    LDA $NNNN,Y  Absolute,Y
+    None,                         // $BA    TSX          Implied
+    None,                         // $BB
+    None,                         // $BC    LDY $NNNN,X  Absolute,X
+    None,                         // $BD    LDA $NNNN,X  Absolute,X
+    None,                         // $BE    LDX $NNNN,Y  Absolute,Y
+    None,                         // $BF
+    None,                         // $C0    CPY #$NN     Immediate
+    None,                         // $C1    CMP ($NN,X)  Indexed Indirect
+    None,                         // $C2
+    None,                         // $C3
+    None,                         // $C4    CPY $NN      Zero Page
+    None,                         // $C5    CMP $NN      Zero Page
+    None,                         // $C6    DEC $NN      Zero Page
+    None,                         // $C7
+    None,                         // $C8    INY          Implied
+    None,                         // $C9    CMP #$NN     Immediate
+    None,                         // $CA    DEX          Implied
+    None,                         // $CB
+    None,                         // $CC    CPY $NNNN    Absolute
+    None,                         // $CD    CMP $NNNN    Absolute
+    None,                         // $CE    DEC $NNNN    Absolute
+    None,                         // $CF
+    None,                         // $D0    BNE $NN      Relative
+    None,                         // $D1    CMP ($NN),Y  Indirect Indexed
+    None,                         // $D2
+    None,                         // $D3
+    None,                         // $D4
+    None,                         // $D5    CMP $NN,X    Zero Page,X
+    None,                         // $D6    DEC $NN,X    Zero Page,X
+    None,                         // $D7
+    None,                         // $D8    CLD          Implied
+    None,                         // $D9    CMP $NNNN,Y  Absolute,Y
+    None,                         // $DA
+    None,                         // $DB
+    None,                         // $DC
+    None,                         // $DD    CMP $NNNN,X  Absolute,X
+    None,                         // $DE    DEC $NNNN,X  Absolute,X
+    None,                         // $DF
+    None,                         // $E0    CPX #$NN     Immediate
+    None,                         // $E1    SBC ($NN,X)  Indexed Indirect
+    None,                         // $E2
+    None,                         // $E3
+    None,                         // $E4    CPX $NN      Zero Page
+    None,                         // $E5    SBC $NN      Zero Page
+    None,                         // $E6    INC $NN      Zero Page
+    None,                         // $E7
+    None,                         // $E8    INX          Implied
+    None,                         // $E9    SBC #$NN     Immediate
+    Some(OpCode(NOP, Implied)),   // $EA    NOP          Implied
+    None,                         // $EB
+    None,                         // $EC    CPX $NNNN    Absolute
+    None,                         // $ED    SBC $NNNN    Absolute
+    None,                         // $EE    INC $NNNN    Absolute
+    None,                         // $EF
+    None,                         // $F0    BEQ $NN      Relative
+    None,                         // $F1    SBC ($NN),Y  Indirect Indexed
+    None,                         // $F2
+    None,                         // $F3
+    None,                         // $F4
+    None,                         // $F5    SBC $NN,X    Zero Page,X
+    None,                         // $F6    INC $NN,X    Zero Page,X
+    None,                         // $F7
+    None,                         // $F8    SED          Implied
+    None,                         // $F9    SBC $NNNN,Y  Absolute,Y
+    None,                         // $FA
+    None,                         // $FB
+    None,                         // $FC
+    None,                         // $FD    SBC $NNNN,X  Absolute,X
+    None,                         // $FE    INC $NNNN,X  Absolute,X
+    None,                         // $FF
 ];
