@@ -603,4 +603,13 @@ mod test_instructions {
         OpCode(Instruction::STA, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(ram[0x0], 0x42);
     }
+
+    #[test]
+    fn test_nop() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        OpCode(Instruction::NOP, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+    }
 }
