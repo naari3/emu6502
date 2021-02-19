@@ -12,6 +12,7 @@ enum Instruction {
     STY,
 
     TAX,
+    TAY,
 
     JMP,
 
@@ -160,6 +161,13 @@ impl OpCode {
                 cpu.x = cpu.a;
                 cpu.flags.z = cpu.x == 0;
                 cpu.flags.n = cpu.x >> 6 & 1 == 1;
+                *cycles -= 1;
+            }
+            TAY => {
+                cpu.y = cpu.a;
+                cpu.flags.z = cpu.y == 0;
+                cpu.flags.n = cpu.y >> 6 & 1 == 1;
+                *cycles -= 1;
             }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
@@ -345,7 +353,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(LDA, ZeroPage)),  // $A5    LDA $NN      Zero Page
     Some(OpCode(LDX, ZeroPage)),  // $A6    LDX $NN      Zero Page
     None,                         // $A7
-    None,                         // $A8    TAY          Implied
+    Some(OpCode(TAY, Implied)),   // $A8    TAY          Implied
     Some(OpCode(LDA, Immediate)), // $A9    LDA #$NN     Immediate
     Some(OpCode(TAX, Implied)),   // $AA    TAX          Implied
     None,                         // $AB
@@ -751,6 +759,18 @@ mod test_instructions {
         cpu.x = 0;
         OpCode(Instruction::TAX, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(cpu.x, 0x42);
+    }
+
+    #[test]
+    fn test_tay() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.a = 0x42;
+        cpu.y = 0;
+        OpCode(Instruction::TAY, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.y, 0x42);
     }
 
     #[test]
