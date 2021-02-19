@@ -136,12 +136,15 @@ fn main() {
     ram[0x8006] = 0xEA; // NOP
     ram[0x8007] = 0x85; // STA $43
     ram[0x8008] = 0x43;
+    ram[0x8009] = 0xAC; // LDY $FFFD
+    ram[0x800A] = 0xFD;
+    ram[0x800B] = 0xFF;
 
     ram[0xFFFC] = 0x00;
     ram[0xFFFD] = 0x80;
 
     ram[0x42] = 0x84;
-    cpu.execute(17, &mut ram);
+    cpu.execute(21, &mut ram);
     println!("CPU: {:?}", cpu);
     println!("RAM: {:?}", ram[0x43]);
 }

@@ -18,7 +18,7 @@ enum AdressingMode {
     ZeroPageX,
     ZeroPageY,
     // Relative,
-    // Absolute,
+    Absolute,
     // AbsoluteX,
     // AbsoluteY,
     // Indirect,
@@ -45,19 +45,31 @@ impl AdressingMode {
                 *cycles -= 1; // may be consumed by add x
                 Some(cpu.read_byte(cycles, ram, (addr + cpu.y) as usize))
             }
+            Absolute => {
+                let addr = cpu.fetch_byte(cycles, ram) as u16
+                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
+
+                Some(cpu.read_byte(cycles, ram, addr as usize))
+            }
         }
     }
 
-    fn get_address(&self, cpu: &mut CPU, cycles: &mut isize, ram: &mut RAM) -> Option<u8> {
+    fn get_address(&self, cpu: &mut CPU, cycles: &mut isize, ram: &mut RAM) -> Option<u16> {
         match self {
-            ZeroPage => Some(cpu.fetch_byte(cycles, ram)),
+            ZeroPage => Some(cpu.fetch_byte(cycles, ram).into()),
             ZeroPageX => {
                 *cycles -= 1; // may be consumed by add x
-                Some(cpu.fetch_byte(cycles, ram) + cpu.x)
+                Some((cpu.fetch_byte(cycles, ram) + cpu.x).into())
             }
             ZeroPageY => {
                 *cycles -= 1; // may be consumed by add y
-                Some(cpu.fetch_byte(cycles, ram) + cpu.y)
+                Some((cpu.fetch_byte(cycles, ram) + cpu.y).into())
+            }
+            Absolute => {
+                let addr = cpu.fetch_byte(cycles, ram) as u16
+                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
+
+                Some(addr)
             }
             _ => panic!("You can't call get_address from {:?}!", self),
         }
@@ -248,7 +260,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $8A    TXA          Implied
     None,                         // $8B
     None,                         // $8C    STY $NNNN    Absolute
-    None,                         // $8D    STA $NNNN    Absolute
+    Some(OpCode(STA, Absolute)),  // $8D    STA $NNNN    Absolute
     None,                         // $8E    STX $NNNN    Absolute
     None,                         // $8F
     None,                         // $90    BCC $NN      Relative
@@ -279,9 +291,9 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(LDA, Immediate)), // $A9    LDA #$NN     Immediate
     None,                         // $AA    TAX          Implied
     None,                         // $AB
-    None,                         // $AC    LDY $NNNN    Absolute
-    None,                         // $AD    LDA $NNNN    Absolute
-    None,                         // $AE    LDX $NNNN    Absolute
+    Some(OpCode(LDY, Absolute)),  // $AC    LDY $NNNN    Absolute
+    Some(OpCode(LDA, Absolute)),  // $AD    LDA $NNNN    Absolute
+    Some(OpCode(LDX, Absolute)),  // $AE    LDX $NNNN    Absolute
     None,                         // $AF
     None,                         // $B0    BCS $NN      Relative
     None,                         // $B1    LDA ($NN),Y  Indirect Indexed
