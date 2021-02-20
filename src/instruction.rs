@@ -48,54 +48,41 @@ enum AddressingMode {
 impl AddressingMode {
     fn fetch(&self, cpu: &mut CPU, cycles: &mut isize, ram: &mut RAM) -> Option<u8> {
         match self {
-            Implied => None,
             Immediate => Some(cpu.fetch_byte(cycles, ram)),
             ZeroPage => {
-                let addr = cpu.fetch_byte(cycles, ram);
+                let addr = self.get_address(cpu, cycles, ram).unwrap();
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             ZeroPageX => {
-                let addr = cpu.fetch_byte(cycles, ram);
-                *cycles -= 1; // may be consumed by add x
-                Some(cpu.read_byte(cycles, ram, (addr + cpu.x) as usize))
+                let addr = self.get_address(cpu, cycles, ram).unwrap();
+                Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             ZeroPageY => {
-                let addr = cpu.fetch_byte(cycles, ram);
-                *cycles -= 1; // may be consumed by add x
-                Some(cpu.read_byte(cycles, ram, (addr + cpu.y) as usize))
+                let addr = self.get_address(cpu, cycles, ram).unwrap();
+                Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             Absolute => {
-                let addr = cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
-
+                let addr = self.get_address(cpu, cycles, ram).unwrap();
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             AbsoluteX => {
-                let addr = cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
-                    + cpu.x as u16;
+                let addr = self.get_address(cpu, cycles, ram).unwrap();
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             AbsoluteY => {
-                let addr = cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
-                    + cpu.y as u16;
+                let addr = self.get_address(cpu, cycles, ram).unwrap();
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             IndexedIndirect => {
-                let ind_addr = cpu.fetch_byte(cycles, ram) as u16 + cpu.x as u16;
-                let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
-                    + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8);
+                let addr = self.get_address(cpu, cycles, ram).unwrap();
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             IndirectIndexed => {
-                let ind_addr = cpu.fetch_byte(cycles, ram) as u16;
-                let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
-                    + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8)
-                    + cpu.y as u16;
+                let addr = self.get_address(cpu, cycles, ram).unwrap();
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
-            _ => panic!("You can't call fetch from {:?}!", self),
+            Implied => panic!("You can't call fetch from {:?}!", self),
+            Indirect => panic!("You can't call fetch from {:?}!", self),
         }
     }
 
@@ -148,7 +135,8 @@ impl AddressingMode {
                     + cpu.y as u16;
                 Some(addr)
             }
-            _ => panic!("You can't call get_address from {:?}!", self),
+            Implied => panic!("You can't call get_address from {:?}!", self),
+            Immediate => panic!("You can't call get_address from {:?}!", self),
         }
     }
 }
