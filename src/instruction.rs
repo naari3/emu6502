@@ -36,7 +36,7 @@ enum Instruction {
 #[derive(Debug)]
 enum AddressingMode {
     Implied,
-    // Accumulator,
+    Accumulator,
     Immediate,
     ZeroPage,
     ZeroPageX,
@@ -53,6 +53,7 @@ enum AddressingMode {
 impl AddressingMode {
     fn fetch(&self, cpu: &mut CPU, cycles: &mut isize, ram: &mut RAM) -> Option<u8> {
         match self {
+            Accumulator => Some(cpu.a),
             Immediate => Some(cpu.fetch_byte(cycles, ram)),
             ZeroPage => {
                 let addr = self.get_address(cpu, cycles, ram).unwrap();
@@ -140,6 +141,7 @@ impl AddressingMode {
                     + cpu.y as u16;
                 Some(addr)
             }
+            Accumulator => panic!("You can't call get_address from {:?}!", self),
             Implied => panic!("You can't call get_address from {:?}!", self),
             Immediate => panic!("You can't call get_address from {:?}!", self),
         }
@@ -515,6 +517,17 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
 #[cfg(test)]
 mod test_addressing_modes {
     use super::*;
+
+    #[test]
+    fn test_accumulator() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.a = 0x42;
+        let byte = AddressingMode::Accumulator.fetch(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(byte, Some(0x42));
+    }
 
     #[test]
     fn test_immediate() {
