@@ -38,6 +38,11 @@ impl RAM {
     pub fn write_byte(&mut self, address: usize, byte: u8) {
         self.inner[address] = byte;
     }
+
+    #[allow(dead_code)]
+    pub fn write_rom(&mut self, start_address: usize, data: &[u8]) {
+        self.inner[start_address..(start_address + data.len())].clone_from_slice(data);
+    }
 }
 
 #[cfg(test)]
