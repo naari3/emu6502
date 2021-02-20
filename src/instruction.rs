@@ -52,6 +52,8 @@ enum Instruction {
     JSR,
     RTS,
 
+    BCC,
+
     NOP,
 }
 
@@ -410,6 +412,12 @@ impl OpCode {
                     + cpu.pull_from_stack(cycles, ram) as u16;
                 cpu.pc = pc + 1;
             }
+            BCC => {
+                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                if cpu.flags.c == false {
+                    cpu.pc = addr;
+                }
+            }
             NOP => {
                 *cycles -= 1;
                 println!("nop");
@@ -566,7 +574,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(STA, Absolute)),        // $8D    STA $NNNN    Absolute
     Some(OpCode(STX, Absolute)),        // $8E    STX $NNNN    Absolute
     None,                               // $8F
-    None,                               // $90    BCC $NN      Relative
+    Some(OpCode(BCC, Relative)),        // $90    BCC $NN      Relative
     Some(OpCode(STA, IndirectIndexed)), // $91    STA ($NN),Y  IndirectIndexed
     None,                               // $92
     None,                               // $93
@@ -1690,6 +1698,18 @@ mod test_instructions {
         ram[0x01FF] = 0x02;
         OpCode(Instruction::RTS, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(cpu.pc, 0x0103);
+    }
+
+    #[test]
+    fn test_bcc() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8001;
+        ram[0x8001] = 0x01_i8 as u8;
+        OpCode(Instruction::BCC, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8003);
     }
 
     #[test]
