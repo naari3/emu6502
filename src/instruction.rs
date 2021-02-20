@@ -21,6 +21,7 @@ enum Instruction {
     PHA,
     PLA,
     PHP,
+    PLP,
 
     JMP,
 
@@ -213,6 +214,11 @@ impl OpCode {
                 let byte = cpu.flags.get_as_u8();
                 cpu.push_to_stack(cycles, ram, byte);
             }
+            PLP => {
+                let byte = cpu.pull_from_stack(cycles, ram);
+                cpu.flags.set_as_u8(byte);
+                *cycles -= 1;
+            }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
@@ -269,7 +275,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $25    AND $NN      Zero Page
     None,                         // $26    ROL $NN      Zero Page
     None,                         // $27
-    None,                         // $28    PLP          Implied
+    Some(OpCode(PLP, Implied)),   // $28    PLP          Implied
     None,                         // $29    AND #$NN     Immediate
     None,                         // $2A    ROL A        Accumulator
     None,                         // $2B
@@ -907,6 +913,23 @@ mod test_instructions {
         OpCode(Instruction::PHP, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(cpu.sp, 0xFE);
         assert_eq!(ram[0x1FF], 0b00100001);
+    }
+
+    #[test]
+    fn test_plp() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.sp = 0xFE;
+        cpu.flags.c = false;
+        cpu.flags.r = false;
+        ram[0x1FF] = 0b00100001;
+
+        OpCode(Instruction::PLP, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.sp, 0xFF);
+        assert_eq!(cpu.flags.c, true);
+        assert_eq!(cpu.flags.r, true);
     }
 
     #[test]
