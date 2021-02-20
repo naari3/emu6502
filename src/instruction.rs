@@ -31,6 +31,7 @@ enum Instruction {
     BIT,
 
     ASL,
+    LSR,
 
     JMP,
 
@@ -248,13 +249,29 @@ impl OpCode {
                 if let Accumulator = adr_mode {
                     let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
                     cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
-                    cpu.set_accumulator(byte << 1);
+                    let byte = byte << 1;
+                    cpu.set_accumulator(byte);
                 } else {
                     let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                     let byte = cpu.read_byte(cycles, ram, addr as usize);
                     cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
                     let byte = byte << 1;
-                    cpu.set_zero_and_negative_flag(byte << 1);
+                    cpu.set_zero_and_negative_flag(byte);
+                    cpu.write_byte(cycles, ram, addr as usize, byte);
+                }
+            }
+            LSR => {
+                if let Accumulator = adr_mode {
+                    let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                    cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
+                    let byte = byte >> 1;
+                    cpu.set_accumulator(byte);
+                } else {
+                    let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                    let byte = cpu.read_byte(cycles, ram, addr as usize);
+                    cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
+                    let byte = byte >> 1;
+                    cpu.set_zero_and_negative_flag(byte);
                     cpu.write_byte(cycles, ram, addr as usize, byte);
                 }
             }
@@ -344,15 +361,15 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $43
     None,                               // $44
     Some(OpCode(EOR, ZeroPage)),        // $45    EOR $NN      ZeroPage
-    None,                               // $46    LSR $NN      ZeroPage
+    Some(OpCode(LSR, ZeroPage)),        // $46    LSR $NN      ZeroPage
     None,                               // $47
     Some(OpCode(PHA, Implied)),         // $48    PHA          Implied
     Some(OpCode(EOR, Immediate)),       // $49    EOR #$NN     Immediate
-    None,                               // $4A    LSR A        Accumulator
+    Some(OpCode(LSR, Accumulator)),     // $4A    LSR A        Accumulator
     None,                               // $4B
     Some(OpCode(JMP, Absolute)),        // $4C    JMP $NNNN    Absolute
     Some(OpCode(EOR, Absolute)),        // $4D    EOR $NNNN    Absolute
-    None,                               // $4E    LSR $NNNN    Absolute
+    Some(OpCode(LSR, Absolute)),        // $4E    LSR $NNNN    Absolute
     None,                               // $4F
     None,                               // $50    BVC $NN      Relative
     Some(OpCode(EOR, IndirectIndexed)), // $51    EOR ($NN),Y  IndirectIndexed
@@ -360,7 +377,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $53
     None,                               // $54
     Some(OpCode(EOR, ZeroPageX)),       // $55    EOR $NN,X    ZeroPageX
-    None,                               // $56    LSR $NN,X    ZeroPageX
+    Some(OpCode(LSR, ZeroPageX)),       // $56    LSR $NN,X    ZeroPageX
     None,                               // $57
     None,                               // $58    CLI          Implied
     Some(OpCode(EOR, AbsoluteY)),       // $59    EOR $NNNN,Y  AbsoluteY
@@ -368,7 +385,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $5B
     None,                               // $5C
     Some(OpCode(EOR, AbsoluteX)),       // $5D    EOR $NNNN,X  AbsoluteX
-    None,                               // $5E    LSR $NNNN,X  AbsoluteX
+    Some(OpCode(LSR, AbsoluteX)),       // $5E    LSR $NNNN,X  AbsoluteX
     None,                               // $5F
     None,                               // $60    RTS          Implied
     None,                               // $61    ADC ($NN,X)  IndexedIndirect
@@ -1136,6 +1153,29 @@ mod test_instructions {
         ram[0x01] = 0b01000000;
         OpCode(Instruction::ASL, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(ram[0x01], 0b10000000);
+        assert_eq!(cpu.flags.c, false);
+    }
+
+    #[test]
+    fn test_lsr() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.a = 0b11111101;
+        OpCode(Instruction::LSR, AddressingMode::Accumulator).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0b01111110);
+        assert_eq!(cpu.flags.c, true);
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x01;
+        ram[0x01] = 0b00000010;
+        OpCode(Instruction::LSR, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(ram[0x01], 0b00000001);
         assert_eq!(cpu.flags.c, false);
     }
 
