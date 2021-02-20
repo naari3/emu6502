@@ -83,16 +83,13 @@ impl AddressingMode {
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             IndexedIndirect => {
-                let ind_addr = cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
-                    + cpu.x as u16;
+                let ind_addr = cpu.fetch_byte(cycles, ram) as u16 + cpu.x as u16;
                 let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8);
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             IndirectIndexed => {
-                let ind_addr = cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
+                let ind_addr = cpu.fetch_byte(cycles, ram) as u16;
                 let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8)
                     + cpu.y as u16;
@@ -139,16 +136,13 @@ impl AddressingMode {
                 Some(addr)
             }
             IndexedIndirect => {
-                let ind_addr = cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
-                    + cpu.x as u16;
+                let ind_addr = cpu.fetch_byte(cycles, ram) as u16 + cpu.x as u16;
                 let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8);
                 Some(addr)
             }
             IndirectIndexed => {
-                let ind_addr = cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
+                let ind_addr = cpu.fetch_byte(cycles, ram) as u16;
                 let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8)
                     + cpu.y as u16;
@@ -674,19 +668,17 @@ mod test_addressing_modes {
 
         cpu.pc = 0x8000;
         cpu.x = 1;
-        ram[0x8000] = 0x01;
-        ram[0x8001] = 0x01;
-        ram[0x0102] = 0x04;
-        ram[0x0103] = 0x03;
+        ram[0x8000] = 0x00;
+        ram[0x01] = 0x04;
+        ram[0x02] = 0x03;
         let byte = AddressingMode::IndexedIndirect.get_address(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x0304));
 
         cpu.pc = 0x8000;
         cpu.x = 1;
-        ram[0x8000] = 0x01;
-        ram[0x8001] = 0x01;
-        ram[0x0102] = 0x04;
-        ram[0x0103] = 0x03;
+        ram[0x8000] = 0x00;
+        ram[0x01] = 0x04;
+        ram[0x02] = 0x03;
         ram[0x0304] = 0x42;
         let byte = AddressingMode::IndexedIndirect.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x42));
@@ -700,19 +692,17 @@ mod test_addressing_modes {
 
         cpu.pc = 0x8000;
         cpu.y = 1;
-        ram[0x8000] = 0x02;
-        ram[0x8001] = 0x01;
-        ram[0x0102] = 0x04;
-        ram[0x0103] = 0x03;
+        ram[0x8000] = 0x01;
+        ram[0x01] = 0x04;
+        ram[0x02] = 0x03;
         let byte = AddressingMode::IndirectIndexed.get_address(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x0305));
 
         cpu.pc = 0x8000;
         cpu.y = 1;
-        ram[0x8000] = 0x02;
-        ram[0x8001] = 0x01;
-        ram[0x0102] = 0x04;
-        ram[0x0103] = 0x03;
+        ram[0x8000] = 0x01;
+        ram[0x01] = 0x04;
+        ram[0x02] = 0x03;
         ram[0x0305] = 0x42;
         let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x42));
