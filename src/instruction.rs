@@ -33,6 +33,7 @@ enum Instruction {
     ASL,
     LSR,
     ROL,
+    ROR,
 
     JMP,
 
@@ -293,6 +294,23 @@ impl OpCode {
                     cpu.write_byte(cycles, ram, addr as usize, byte);
                 }
             }
+            ROR => {
+                if let Accumulator = adr_mode {
+                    let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                    let new_last_byte = (cpu.flags.c as u8) << 7;
+                    cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
+                    let byte = (byte >> 1) | new_last_byte;
+                    cpu.set_accumulator(byte);
+                } else {
+                    let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                    let byte = cpu.read_byte(cycles, ram, addr as usize);
+                    let new_last_byte = (cpu.flags.c as u8) << 7;
+                    cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
+                    let byte = (byte >> 1) | new_last_byte;
+                    cpu.set_zero_and_negative_flag(byte);
+                    cpu.write_byte(cycles, ram, addr as usize, byte);
+                }
+            }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
@@ -411,15 +429,15 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $63
     None,                               // $64
     None,                               // $65    ADC $NN      ZeroPage
-    None,                               // $66    ROR $NN      ZeroPage
+    Some(OpCode(ROR, ZeroPage)),        // $66    ROR $NN      ZeroPage
     None,                               // $67
     Some(OpCode(PLA, Implied)),         // $68    PLA          Implied
     None,                               // $69    ADC #$NN     Immediate
-    None,                               // $6A    ROR A        Accumulator
+    Some(OpCode(ROR, Accumulator)),     // $6A    ROR A        Accumulator
     None,                               // $6B
     Some(OpCode(JMP, Indirect)),        // $6C    JMP $NN      Indirect
     None,                               // $6D    ADC $NNNN    Absolute
-    None,                               // $6E    ROR $NNNN,X  AbsoluteX
+    Some(OpCode(ROR, AbsoluteX)),       // $6E    ROR $NNNN,X  AbsoluteX
     None,                               // $6F
     None,                               // $70    BVS $NN      Relative
     None,                               // $71    ADC ($NN),Y  IndirectIndexed
@@ -427,7 +445,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $73
     None,                               // $74
     None,                               // $75    ADC $NN,X    ZeroPageX
-    None,                               // $76    ROR $NN,X    ZeroPageX
+    Some(OpCode(ROR, ZeroPageX)),       // $76    ROR $NN,X    ZeroPageX
     None,                               // $77
     None,                               // $78    SEI          Implied
     None,                               // $79    ADC $NNNN,Y  AbsoluteY
@@ -435,7 +453,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $7B
     None,                               // $7C
     None,                               // $7D    ADC $NNNN,X  AbsoluteX
-    None,                               // $7E    ROR $NNNN    Absolute
+    Some(OpCode(ROR, Absolute)),        // $7E    ROR $NNNN    Absolute
     None,                               // $7F
     None,                               // $80
     Some(OpCode(STA, IndexedIndirect)), // $81    STA ($NN,X)  IndexedIndirect
@@ -1221,6 +1239,32 @@ mod test_instructions {
         assert_eq!(ram[0x01], 0b10000000);
         assert_eq!(cpu.flags.c, false);
     }
+
+    #[test]
+    fn test_ror() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.a = 0b11111101;
+        cpu.flags.c = true;
+        OpCode(Instruction::ROR, AddressingMode::Accumulator).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0b11111110);
+        assert_eq!(cpu.flags.c, true);
+
+        cpu.pc = 0x8000;
+        cpu.flags.c = false;
+        ram[0x8000] = 0x01;
+        ram[0x01] = 0b00000010;
+        OpCode(Instruction::ROR, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(ram[0x01], 0b00000001);
+        assert_eq!(cpu.flags.c, false);
+    }
+
     #[test]
     fn test_jmp() {
         let mut cpu = CPU::default();
