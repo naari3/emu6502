@@ -90,6 +90,24 @@ impl CPU {
         byte
     }
 
+    pub fn set_accumlator(&mut self, byte: u8) {
+        self.a = byte;
+        self.flags.z = byte == 0;
+        self.flags.n = (byte >> 7 & 1) == 1;
+    }
+
+    pub fn set_index_x(&mut self, byte: u8) {
+        self.x = byte;
+        self.flags.z = byte == 0;
+        self.flags.n = (byte >> 7 & 1) == 1;
+    }
+
+    pub fn set_index_y(&mut self, byte: u8) {
+        self.y = byte;
+        self.flags.z = byte == 0;
+        self.flags.n = (byte >> 7 & 1) == 1;
+    }
+
     pub fn execute(&mut self, mut cycles: isize, ram: &mut RAM) {
         let addr_low = self.fetch_byte(&mut cycles, ram);
         let addr_high = self.fetch_byte(&mut cycles, ram);

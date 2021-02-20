@@ -157,21 +157,15 @@ impl OpCode {
         match ins {
             LDA => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
-                cpu.a = byte;
-                cpu.flags.z = byte == 0;
-                cpu.flags.n = byte >> 6 & 1 == 1;
+                cpu.set_accumlator(byte);
             }
             LDX => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
-                cpu.x = byte;
-                cpu.flags.z = byte == 0;
-                cpu.flags.n = byte >> 6 & 1 == 1;
+                cpu.set_index_x(byte);
             }
             LDY => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
-                cpu.y = byte;
-                cpu.flags.z = byte == 0;
-                cpu.flags.n = byte >> 6 & 1 == 1;
+                cpu.set_index_y(byte);
             }
             STA => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
@@ -186,33 +180,23 @@ impl OpCode {
                 cpu.write_byte(cycles, ram, addr as usize, cpu.y);
             }
             TAX => {
-                cpu.x = cpu.a;
-                cpu.flags.z = cpu.x == 0;
-                cpu.flags.n = cpu.x >> 6 & 1 == 1;
+                cpu.set_index_x(cpu.a);
                 *cycles -= 1;
             }
             TAY => {
-                cpu.y = cpu.a;
-                cpu.flags.z = cpu.y == 0;
-                cpu.flags.n = cpu.y >> 6 & 1 == 1;
+                cpu.set_index_y(cpu.a);
                 *cycles -= 1;
             }
             TXA => {
-                cpu.a = cpu.x;
-                cpu.flags.z = cpu.a == 0;
-                cpu.flags.n = cpu.a >> 6 & 1 == 1;
+                cpu.set_accumlator(cpu.x);
                 *cycles -= 1;
             }
             TYA => {
-                cpu.a = cpu.y;
-                cpu.flags.z = cpu.a == 0;
-                cpu.flags.n = cpu.a >> 6 & 1 == 1;
+                cpu.set_accumlator(cpu.y);
                 *cycles -= 1;
             }
             TSX => {
-                cpu.x = cpu.sp;
-                cpu.flags.z = cpu.x == 0;
-                cpu.flags.n = cpu.x >> 6 & 1 == 1;
+                cpu.set_index_x(cpu.sp);
                 *cycles -= 1;
             }
             TXS => {
@@ -224,9 +208,7 @@ impl OpCode {
             }
             PLA => {
                 let byte = cpu.pull_from_stack(cycles, ram);
-                cpu.a = byte;
-                cpu.flags.z = byte == 0;
-                cpu.flags.n = byte >> 6 & 1 == 1;
+                cpu.set_accumlator(byte);
                 *cycles -= 1;
             }
             PHP => {
@@ -240,21 +222,15 @@ impl OpCode {
             }
             AND => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
-                cpu.a = cpu.a & byte;
-                cpu.flags.z = cpu.a == 0;
-                cpu.flags.n = cpu.a >> 6 & 1 == 1;
+                cpu.set_accumlator(cpu.a & byte);
             }
             EOR => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
-                cpu.a = cpu.a ^ byte;
-                cpu.flags.z = cpu.a == 0;
-                cpu.flags.n = cpu.a >> 6 & 1 == 1;
+                cpu.set_accumlator(cpu.a ^ byte);
             }
             ORA => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
-                cpu.a = cpu.a | byte;
-                cpu.flags.z = cpu.a == 0;
-                cpu.flags.n = cpu.a >> 6 & 1 == 1;
+                cpu.set_accumlator(cpu.a | byte);
             }
             BIT => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
@@ -737,13 +713,13 @@ mod test_instructions {
         let mut cycles = 999;
 
         cpu.pc = 0x8000;
-        ram[0x8000] = 0b01000010; // eq to 0x42
+        ram[0x8000] = 0b10000010;
         OpCode(Instruction::LDA, AddressingMode::Immediate).execute(
             &mut cpu,
             &mut cycles,
             &mut ram,
         );
-        assert_eq!(cpu.a, 0b01000010);
+        assert_eq!(cpu.a, 0b10000010);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
@@ -777,13 +753,13 @@ mod test_instructions {
         let mut cycles = 999;
 
         cpu.pc = 0x8000;
-        ram[0x8000] = 0b01000010; // eq to 0x42
+        ram[0x8000] = 0b10000010;
         OpCode(Instruction::LDX, AddressingMode::Immediate).execute(
             &mut cpu,
             &mut cycles,
             &mut ram,
         );
-        assert_eq!(cpu.x, 0b01000010);
+        assert_eq!(cpu.x, 0b10000010);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
@@ -817,13 +793,13 @@ mod test_instructions {
         let mut cycles = 999;
 
         cpu.pc = 0x8000;
-        ram[0x8000] = 0b01000010; // eq to 0x42
+        ram[0x8000] = 0b10000010;
         OpCode(Instruction::LDY, AddressingMode::Immediate).execute(
             &mut cpu,
             &mut cycles,
             &mut ram,
         );
-        assert_eq!(cpu.y, 0b01000010);
+        assert_eq!(cpu.y, 0b10000010);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
