@@ -26,6 +26,7 @@ enum Instruction {
     AND,
     EOR,
     ORA,
+    BIT,
 
     JMP,
 
@@ -255,6 +256,12 @@ impl OpCode {
                 cpu.flags.z = cpu.a == 0;
                 cpu.flags.n = cpu.a >> 6 & 1 == 1;
             }
+            BIT => {
+                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                cpu.flags.z = cpu.a & byte == 0;
+                cpu.flags.v = (byte >> 5 & 1) == 1;
+                cpu.flags.n = (byte >> 6 & 1) == 1;
+            }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
@@ -307,7 +314,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(AND, IndexedIndirect)), // $21    AND ($NN,X)  IndexedIndirect
     None,                               // $22
     None,                               // $23
-    None,                               // $24    BIT $NN      ZeroPage
+    Some(OpCode(BIT, ZeroPage)),        // $24    BIT $NN      ZeroPage
     Some(OpCode(AND, ZeroPage)),        // $25    AND $NN      ZeroPage
     None,                               // $26    ROL $NN      ZeroPage
     None,                               // $27
@@ -315,7 +322,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(AND, Immediate)),       // $29    AND #$NN     Immediate
     None,                               // $2A    ROL A        Accumulator
     None,                               // $2B
-    None,                               // $2C    BIT $NNNN    Absolute
+    Some(OpCode(BIT, Absolute)),        // $2C    BIT $NNNN    Absolute
     Some(OpCode(AND, Absolute)),        // $2D    AND $NNNN    Absolute
     None,                               // $2E    ROL $NNNN    Absolute
     None,                               // $2F
@@ -1072,6 +1079,33 @@ mod test_instructions {
         );
         assert_eq!(cpu.a, 0b11111111);
         assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, true);
+    }
+
+    #[test]
+    fn test_bit() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.a = 0;
+        ram[0x1] = 0;
+        ram[0x8000] = 0x1;
+
+        OpCode(Instruction::BIT, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.flags.z, true);
+        assert_eq!(cpu.flags.v, false);
+        assert_eq!(cpu.flags.n, false);
+
+        cpu.pc = 0x8000;
+        cpu.a = 0;
+        ram[0x1] = 0b01100000;
+        ram[0x8000] = 0x1;
+
+        OpCode(Instruction::BIT, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.flags.z, true);
+        assert_eq!(cpu.flags.v, true);
         assert_eq!(cpu.flags.n, true);
     }
 
