@@ -30,6 +30,9 @@ enum Instruction {
     ORA,
     BIT,
 
+    ADC,
+    SBC,
+
     ASL,
     LSR,
     ROL,
@@ -247,6 +250,20 @@ impl OpCode {
                 cpu.flags.v = (byte >> 5 & 1) == 1;
                 cpu.flags.n = (byte >> 6 & 1) == 1;
             }
+            ADC => {
+                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let (byte, overflowing1) = cpu.a.overflowing_add(byte);
+                let (byte, overflowing2) = byte.overflowing_add(cpu.flags.c as u8);
+                cpu.flags.c = overflowing1 || overflowing2;
+                cpu.set_accumulator(byte);
+            }
+            SBC => {
+                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let (byte, overflowing1) = cpu.a.overflowing_sub(byte);
+                let (byte, overflowing2) = byte.overflowing_sub(!cpu.flags.c as u8);
+                cpu.flags.c = !(overflowing1 || overflowing2);
+                cpu.set_accumulator(byte);
+            }
             ASL => {
                 if let Accumulator = adr_mode {
                     let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
@@ -424,35 +441,35 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(LSR, AbsoluteX)),       // $5E    LSR $NNNN,X  AbsoluteX
     None,                               // $5F
     None,                               // $60    RTS          Implied
-    None,                               // $61    ADC ($NN,X)  IndexedIndirect
+    Some(OpCode(ADC, IndexedIndirect)), // $61    ADC ($NN,X)  IndexedIndirect
     None,                               // $62
     None,                               // $63
     None,                               // $64
-    None,                               // $65    ADC $NN      ZeroPage
+    Some(OpCode(ADC, ZeroPage)),        // $65    ADC $NN      ZeroPage
     Some(OpCode(ROR, ZeroPage)),        // $66    ROR $NN      ZeroPage
     None,                               // $67
     Some(OpCode(PLA, Implied)),         // $68    PLA          Implied
-    None,                               // $69    ADC #$NN     Immediate
+    Some(OpCode(ADC, Immediate)),       // $69    ADC #$NN     Immediate
     Some(OpCode(ROR, Accumulator)),     // $6A    ROR A        Accumulator
     None,                               // $6B
     Some(OpCode(JMP, Indirect)),        // $6C    JMP $NN      Indirect
-    None,                               // $6D    ADC $NNNN    Absolute
+    Some(OpCode(ADC, Absolute)),        // $6D    ADC $NNNN    Absolute
     Some(OpCode(ROR, AbsoluteX)),       // $6E    ROR $NNNN,X  AbsoluteX
     None,                               // $6F
     None,                               // $70    BVS $NN      Relative
-    None,                               // $71    ADC ($NN),Y  IndirectIndexed
+    Some(OpCode(ADC, IndirectIndexed)), // $71    ADC ($NN),Y  IndirectIndexed
     None,                               // $72
     None,                               // $73
     None,                               // $74
-    None,                               // $75    ADC $NN,X    ZeroPageX
+    Some(OpCode(ADC, ZeroPageX)),       // $75    ADC $NN,X    ZeroPageX
     Some(OpCode(ROR, ZeroPageX)),       // $76    ROR $NN,X    ZeroPageX
     None,                               // $77
     None,                               // $78    SEI          Implied
-    None,                               // $79    ADC $NNNN,Y  AbsoluteY
+    Some(OpCode(ADC, AbsoluteY)),       // $79    ADC $NNNN,Y  AbsoluteY
     None,                               // $7A
     None,                               // $7B
     None,                               // $7C
-    None,                               // $7D    ADC $NNNN,X  AbsoluteX
+    Some(OpCode(ADC, AbsoluteX)),       // $7D    ADC $NNNN,X  AbsoluteX
     Some(OpCode(ROR, Absolute)),        // $7E    ROR $NNNN    Absolute
     None,                               // $7F
     None,                               // $80
@@ -552,35 +569,35 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $DE    DEC $NNNN,X  AbsoluteX
     None,                               // $DF
     None,                               // $E0    CPX #$NN     Immediate
-    None,                               // $E1    SBC ($NN,X)  IndexedIndirect
+    Some(OpCode(SBC, IndexedIndirect)), // $E1    SBC ($NN,X)  IndexedIndirect
     None,                               // $E2
     None,                               // $E3
     None,                               // $E4    CPX $NN      ZeroPage
-    None,                               // $E5    SBC $NN      ZeroPage
+    Some(OpCode(SBC, ZeroPage)),        // $E5    SBC $NN      ZeroPage
     None,                               // $E6    INC $NN      ZeroPage
     None,                               // $E7
     None,                               // $E8    INX          Implied
-    None,                               // $E9    SBC #$NN     Immediate
+    Some(OpCode(SBC, Immediate)),       // $E9    SBC #$NN     Immediate
     Some(OpCode(NOP, Implied)),         // $EA    NOP          Implied
     None,                               // $EB
     None,                               // $EC    CPX $NNNN    Absolute
-    None,                               // $ED    SBC $NNNN    Absolute
+    Some(OpCode(SBC, Absolute)),        // $ED    SBC $NNNN    Absolute
     None,                               // $EE    INC $NNNN    Absolute
     None,                               // $EF
     None,                               // $F0    BEQ $NN      Relative
-    None,                               // $F1    SBC ($NN),Y  IndirectIndexed
+    Some(OpCode(SBC, IndirectIndexed)), // $F1    SBC ($NN),Y  IndirectIndexed
     None,                               // $F2
     None,                               // $F3
     None,                               // $F4
-    None,                               // $F5    SBC $NN,X    ZeroPageX
+    Some(OpCode(SBC, ZeroPageX)),       // $F5    SBC $NN,X    ZeroPageX
     None,                               // $F6    INC $NN,X    ZeroPageX
     None,                               // $F7
     None,                               // $F8    SED          Implied
-    None,                               // $F9    SBC $NNNN,Y  AbsoluteY
+    Some(OpCode(SBC, AbsoluteY)),       // $F9    SBC $NNNN,Y  AbsoluteY
     None,                               // $FA
     None,                               // $FB
     None,                               // $FC
-    None,                               // $FD    SBC $NNNN,X  AbsoluteX
+    Some(OpCode(SBC, AbsoluteX)),       // $FD    SBC $NNNN,X  AbsoluteX
     None,                               // $FE    INC $NNNN,X  AbsoluteX
     None,                               // $FF
 ];
@@ -1167,6 +1184,68 @@ mod test_instructions {
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.v, true);
         assert_eq!(cpu.flags.n, true);
+    }
+
+    #[test]
+    fn test_adc() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.a = 0x20;
+        cpu.pc = 0x8000;
+        cpu.flags.c = false;
+        ram[0x8000] = 0x10;
+        OpCode(Instruction::ADC, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0x30);
+        assert_eq!(cpu.flags.c, false);
+
+        cpu.a = 0xFF;
+        cpu.pc = 0x8000;
+        cpu.flags.c = true;
+        ram[0x8000] = 1;
+        OpCode(Instruction::ADC, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 1);
+        assert_eq!(cpu.flags.c, true);
+    }
+
+    #[test]
+    fn test_sbc() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.a = 0x30;
+        cpu.pc = 0x8000;
+        cpu.flags.c = true;
+        ram[0x8000] = 0x10;
+        OpCode(Instruction::SBC, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0x20);
+        assert_eq!(cpu.flags.c, true);
+
+        cpu.a = 0x00;
+        cpu.pc = 0x8000;
+        cpu.flags.c = false;
+        ram[0x8000] = 1;
+        OpCode(Instruction::SBC, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0xFE);
+        assert_eq!(cpu.flags.c, false);
     }
 
     #[test]

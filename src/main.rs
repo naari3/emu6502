@@ -29,5 +29,5 @@ fn main() {
     cpu.execute(21, &mut ram);
     println!("CPU: {:?}", cpu);
     println!("RAM: {:?}", ram[0x43]);
-    println!("AAA: {:}", 0x11_u8 << 4);
+    println!("AAA: {:?}", 0x10_u8.overflowing_sub(0x11_u8));
 }
