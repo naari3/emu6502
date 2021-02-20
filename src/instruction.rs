@@ -32,6 +32,7 @@ enum Instruction {
 
     ASL,
     LSR,
+    ROL,
 
     JMP,
 
@@ -275,6 +276,23 @@ impl OpCode {
                     cpu.write_byte(cycles, ram, addr as usize, byte);
                 }
             }
+            ROL => {
+                if let Accumulator = adr_mode {
+                    let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                    let new_first_byte = cpu.flags.c as u8;
+                    cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
+                    let byte = (byte << 1) | new_first_byte;
+                    cpu.set_accumulator(byte);
+                } else {
+                    let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                    let byte = cpu.read_byte(cycles, ram, addr as usize);
+                    let new_first_byte = cpu.flags.c as u8;
+                    cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
+                    let byte = (byte << 1) | new_first_byte;
+                    cpu.set_zero_and_negative_flag(byte);
+                    cpu.write_byte(cycles, ram, addr as usize, byte);
+                }
+            }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
@@ -329,15 +347,15 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $23
     Some(OpCode(BIT, ZeroPage)),        // $24    BIT $NN      ZeroPage
     Some(OpCode(AND, ZeroPage)),        // $25    AND $NN      ZeroPage
-    None,                               // $26    ROL $NN      ZeroPage
+    Some(OpCode(ROL, ZeroPage)),        // $26    ROL $NN      ZeroPage
     None,                               // $27
     Some(OpCode(PLP, Implied)),         // $28    PLP          Implied
     Some(OpCode(AND, Immediate)),       // $29    AND #$NN     Immediate
-    None,                               // $2A    ROL A        Accumulator
+    Some(OpCode(ROL, Accumulator)),     // $2A    ROL A        Accumulator
     None,                               // $2B
     Some(OpCode(BIT, Absolute)),        // $2C    BIT $NNNN    Absolute
     Some(OpCode(AND, Absolute)),        // $2D    AND $NNNN    Absolute
-    None,                               // $2E    ROL $NNNN    Absolute
+    Some(OpCode(ROL, Absolute)),        // $2E    ROL $NNNN    Absolute
     None,                               // $2F
     None,                               // $30    BMI $NN      Relative
     Some(OpCode(AND, IndirectIndexed)), // $31    AND ($NN),Y  IndirectIndexed
@@ -345,7 +363,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $33
     None,                               // $34
     Some(OpCode(AND, ZeroPageX)),       // $35    AND $NN,X    ZeroPageX
-    None,                               // $36    ROL $NN,X    ZeroPageX
+    Some(OpCode(ROL, ZeroPageX)),       // $36    ROL $NN,X    ZeroPageX
     None,                               // $37
     None,                               // $38    SEC          Implied
     Some(OpCode(AND, AbsoluteY)),       // $39    AND $NNNN,Y  AbsoluteY
@@ -353,7 +371,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $3B
     None,                               // $3C
     Some(OpCode(AND, AbsoluteX)),       // $3D    AND $NNNN,X  AbsoluteX
-    None,                               // $3E    ROL $NNNN,X  AbsoluteX
+    Some(OpCode(ROL, AbsoluteX)),       // $3E    ROL $NNNN,X  AbsoluteX
     None,                               // $3F
     None,                               // $40    RTI          Implied
     Some(OpCode(EOR, IndexedIndirect)), // $41    EOR ($NN,X)  IndexedIndirect
@@ -1179,6 +1197,30 @@ mod test_instructions {
         assert_eq!(cpu.flags.c, false);
     }
 
+    #[test]
+    fn test_rol() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.a = 0b10111111;
+        cpu.flags.c = true;
+        OpCode(Instruction::ROL, AddressingMode::Accumulator).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0b01111111);
+        assert_eq!(cpu.flags.c, true);
+
+        cpu.pc = 0x8000;
+        cpu.flags.c = false;
+        ram[0x8000] = 0x01;
+        ram[0x01] = 0b01000000;
+        OpCode(Instruction::ROL, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(ram[0x01], 0b10000000);
+        assert_eq!(cpu.flags.c, false);
+    }
     #[test]
     fn test_jmp() {
         let mut cpu = CPU::default();
