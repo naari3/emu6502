@@ -36,6 +36,10 @@ enum Instruction {
     CPX,
     CPY,
 
+    INC,
+    INX,
+    INY,
+
     ASL,
     LSR,
     ROL,
@@ -284,6 +288,23 @@ impl OpCode {
                 cpu.flags.c = cpu.y >= byte;
                 cpu.flags.z = cpu.y == byte;
                 cpu.flags.n = cpu.y.wrapping_sub(byte) >> 7 & 1 == 1;
+            }
+            INC => {
+                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let byte = cpu.read_byte(cycles, ram, addr as usize);
+                let byte = byte.wrapping_add(1);
+                cpu.set_zero_and_negative_flag(byte);
+                cpu.write_byte(cycles, ram, addr as usize, byte);
+            }
+            INX => {
+                let byte = cpu.x;
+                let byte = byte.wrapping_add(1);
+                cpu.set_index_x(byte);
+            }
+            INY => {
+                let byte = cpu.y;
+                let byte = byte.wrapping_add(1);
+                cpu.set_index_y(byte);
             }
             ASL => {
                 if let Accumulator = adr_mode {
@@ -565,7 +586,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(CMP, ZeroPage)),        // $C5    CMP $NN      ZeroPage
     None,                               // $C6    DEC $NN      ZeroPage
     None,                               // $C7
-    None,                               // $C8    INY          Implied
+    Some(OpCode(INY, Implied)),         // $C8    INY          Implied
     Some(OpCode(CMP, Immediate)),       // $C9    CMP #$NN     Immediate
     None,                               // $CA    DEX          Implied
     None,                               // $CB
@@ -595,15 +616,15 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $E3
     Some(OpCode(CPX, ZeroPage)),        // $E4    CPX $NN      ZeroPage
     Some(OpCode(SBC, ZeroPage)),        // $E5    SBC $NN      ZeroPage
-    None,                               // $E6    INC $NN      ZeroPage
+    Some(OpCode(INC, ZeroPage)),        // $E6    INC $NN      ZeroPage
     None,                               // $E7
-    None,                               // $E8    INX          Implied
+    Some(OpCode(INX, Implied)),         // $E8    INX          Implied
     Some(OpCode(SBC, Immediate)),       // $E9    SBC #$NN     Immediate
     Some(OpCode(NOP, Implied)),         // $EA    NOP          Implied
     None,                               // $EB
     Some(OpCode(CPX, Absolute)),        // $EC    CPX $NNNN    Absolute
     Some(OpCode(SBC, Absolute)),        // $ED    SBC $NNNN    Absolute
-    None,                               // $EE    INC $NNNN    Absolute
+    Some(OpCode(INC, Absolute)),        // $EE    INC $NNNN    Absolute
     None,                               // $EF
     None,                               // $F0    BEQ $NN      Relative
     Some(OpCode(SBC, IndirectIndexed)), // $F1    SBC ($NN),Y  IndirectIndexed
@@ -611,7 +632,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $F3
     None,                               // $F4
     Some(OpCode(SBC, ZeroPageX)),       // $F5    SBC $NN,X    ZeroPageX
-    None,                               // $F6    INC $NN,X    ZeroPageX
+    Some(OpCode(INC, ZeroPageX)),       // $F6    INC $NN,X    ZeroPageX
     None,                               // $F7
     None,                               // $F8    SED          Implied
     Some(OpCode(SBC, AbsoluteY)),       // $F9    SBC $NNNN,Y  AbsoluteY
@@ -619,7 +640,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $FB
     None,                               // $FC
     Some(OpCode(SBC, AbsoluteX)),       // $FD    SBC $NNNN,X  AbsoluteX
-    None,                               // $FE    INC $NNNN,X  AbsoluteX
+    Some(OpCode(INC, AbsoluteX)),       // $FE    INC $NNNN,X  AbsoluteX
     None,                               // $FF
 ];
 
@@ -1360,6 +1381,67 @@ mod test_instructions {
         assert_eq!(cpu.flags.c, false);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
+    }
+
+    #[test]
+    fn test_inc() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x00;
+        ram[0x00] = 0xFE;
+        OpCode(Instruction::INC, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(ram[0x00], 0xFF);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, true);
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x00;
+        ram[0x00] = 0xFF;
+        OpCode(Instruction::INC, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(ram[0x00], 0x00);
+        assert_eq!(cpu.flags.z, true);
+        assert_eq!(cpu.flags.n, false);
+    }
+
+    #[test]
+    fn test_inx() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.x = 0xFE;
+        OpCode(Instruction::INX, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.x, 0xFF);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, true);
+
+        cpu.x = 0xFF;
+        OpCode(Instruction::INX, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.x, 0x00);
+        assert_eq!(cpu.flags.z, true);
+        assert_eq!(cpu.flags.n, false);
+    }
+
+    #[test]
+    fn test_iny() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.y = 0xFE;
+        OpCode(Instruction::INY, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.y, 0xFF);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, true);
+
+        cpu.y = 0xFF;
+        OpCode(Instruction::INY, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.y, 0x00);
+        assert_eq!(cpu.flags.z, true);
+        assert_eq!(cpu.flags.n, false);
     }
 
     #[test]
