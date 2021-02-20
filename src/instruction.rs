@@ -527,7 +527,7 @@ impl OpCode {
 use AddressingMode::*;
 use Instruction::*;
 pub const OPCODES: [Option<OpCode>; 0x100] = [
-    Some(OpCode(BRK, Implied)),         // $00    BRK	         Implied
+    Some(OpCode(BRK, Implied)),         // $00    BRK	       Implied
     Some(OpCode(ORA, IndexedIndirect)), // $01    ORA ($NN,X)  IndexedIndirect
     None,                               // $02
     None,                               // $03
@@ -676,7 +676,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $92
     None,                               // $93
     Some(OpCode(STY, ZeroPageX)),       // $94    STY $NN,X    ZeroPageX
-    Some(OpCode(STA, ZeroPageY)),       // $95    STA $NN,X    ZeroPageX
+    Some(OpCode(STA, ZeroPageX)),       // $95    STA $NN,X    ZeroPageX
     Some(OpCode(STX, ZeroPageY)),       // $96    STX $NN,Y    ZeroPageY
     None,                               // $97
     Some(OpCode(TYA, Implied)),         // $98    TYA          Implied
