@@ -67,6 +67,13 @@ impl CPU {
         *cycles -= 1;
     }
 
+    pub fn pull_from_stack(&mut self, cycles: &mut isize, ram: &mut RAM) -> u8 {
+        self.sp += 1;
+        let byte = self.read_byte(cycles, ram, (0x0100 + self.sp as u16) as usize);
+        *cycles -= 1;
+        byte
+    }
+
     pub fn execute(&mut self, mut cycles: isize, ram: &mut RAM) {
         let addr_low = self.fetch_byte(&mut cycles, ram);
         let addr_high = self.fetch_byte(&mut cycles, ram);
