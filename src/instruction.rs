@@ -61,6 +61,8 @@ enum Instruction {
     BVC,
     BVS,
 
+    CLC,
+
     NOP,
 }
 
@@ -467,6 +469,9 @@ impl OpCode {
                     cpu.pc = addr;
                 }
             }
+            CLC => {
+                cpu.flags.c = false;
+            }
             NOP => {
                 *cycles -= 1;
                 println!("nop");
@@ -503,7 +508,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(ORA, ZeroPageX)),       // $15    ORA $NN,X    ZeroPageX
     Some(OpCode(ASL, ZeroPageX)),       // $16    ASL $NN,X    ZeroPageX
     None,                               // $17
-    None,                               // $18    CLC          Implied
+    Some(OpCode(CLC, Implied)),         // $18    CLC          Implied
     Some(OpCode(ORA, AbsoluteY)),       // $19    ORA $NNNN,Y  AbsoluteY
     None,                               // $1A
     None,                               // $1B
@@ -1899,6 +1904,17 @@ mod test_instructions {
         ram[0x8001] = 0x02_i8 as u8;
         OpCode(Instruction::BVS, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
+    }
+
+    #[test]
+    fn test_clc() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.flags.c = true;
+        OpCode(Instruction::CLC, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.flags.c, false);
     }
 
     #[test]
