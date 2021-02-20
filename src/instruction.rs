@@ -25,6 +25,7 @@ enum Instruction {
 
     AND,
     EOR,
+    ORA,
 
     JMP,
 
@@ -248,6 +249,12 @@ impl OpCode {
                 cpu.flags.z = cpu.a == 0;
                 cpu.flags.n = cpu.a >> 6 & 1 == 1;
             }
+            ORA => {
+                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                cpu.a = cpu.a | byte;
+                cpu.flags.z = cpu.a == 0;
+                cpu.flags.n = cpu.a >> 6 & 1 == 1;
+            }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
@@ -265,35 +272,35 @@ use Instruction::*;
 #[allow(dead_code)]
 pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $00    BRK	         Implied
-    None,                               // $01    ORA ($NN,X)  IndexedIndirect
+    Some(OpCode(ORA, IndexedIndirect)), // $01    ORA ($NN,X)  IndexedIndirect
     None,                               // $02
     None,                               // $03
     None,                               // $04
-    None,                               // $05    ORA $NN      ZeroPage
+    Some(OpCode(ORA, ZeroPage)),        // $05    ORA $NN      ZeroPage
     None,                               // $06    ASL $NN      ZeroPage
     None,                               // $07
     Some(OpCode(PHP, Implied)),         // $08    PHP          Implied
-    None,                               // $09    ORA #$NN     Immediate
+    Some(OpCode(ORA, Immediate)),       // $09    ORA #$NN     Immediate
     None,                               // $0A    ASL A        Accumulator
     None,                               // $0B
     None,                               // $0C
-    None,                               // $0D    ORA $NNNN    Absolute
+    Some(OpCode(ORA, Absolute)),        // $0D    ORA $NNNN    Absolute
     None,                               // $0E    ASL $NNNN    Absolute
     None,                               // $0F
     None,                               // $10    BPL $NN      Relative
-    None,                               // $11    ORA ($NN),Y  IndirectIndexed
+    Some(OpCode(ORA, IndirectIndexed)), // $11    ORA ($NN),Y  IndirectIndexed
     None,                               // $12
     None,                               // $13
     None,                               // $14
-    None,                               // $15    ORA $NN,X    ZeroPageX
+    Some(OpCode(ORA, ZeroPageX)),       // $15    ORA $NN,X    ZeroPageX
     None,                               // $16    ASL $NN,X    ZeroPageX
     None,                               // $17
     None,                               // $18    CLC          Implied
-    None,                               // $19    ORA $NNNN,Y  AbsoluteY
+    Some(OpCode(ORA, AbsoluteY)),       // $19    ORA $NNNN,Y  AbsoluteY
     None,                               // $1A
     None,                               // $1B
     None,                               // $1C
-    None,                               // $1D    ORA $NNNN,X  AbsoluteX
+    Some(OpCode(ORA, AbsoluteX)),       // $1D    ORA $NNNN,X  AbsoluteX
     None,                               // $1E    ASL $NNNN,X  AbsoluteX
     None,                               // $1F
     None,                               // $20    JSR $NNNN    Absolute
@@ -1046,6 +1053,26 @@ mod test_instructions {
         assert_eq!(cpu.a, 0b00000111);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
+    }
+
+    #[test]
+    fn test_ora() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.a = 0b00001111;
+        ram[0x8000] = 0b11110000;
+
+        OpCode(Instruction::ORA, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0b11111111);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, true);
     }
 
     #[test]
