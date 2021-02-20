@@ -23,6 +23,8 @@ enum Instruction {
     PHP,
     PLP,
 
+    AND,
+
     JMP,
 
     NOP,
@@ -233,6 +235,12 @@ impl OpCode {
                 cpu.flags.set_as_u8(byte);
                 *cycles -= 1;
             }
+            AND => {
+                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                cpu.a = cpu.a & byte;
+                cpu.flags.z = cpu.a == 0;
+                cpu.flags.n = cpu.a >> 6 & 1 == 1;
+            }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
@@ -282,35 +290,35 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $1E    ASL $NNNN,X  AbsoluteX
     None,                               // $1F
     None,                               // $20    JSR $NNNN    Absolute
-    None,                               // $21    AND ($NN,X)  IndexedIndirect
+    Some(OpCode(AND, IndexedIndirect)), // $21    AND ($NN,X)  IndexedIndirect
     None,                               // $22
     None,                               // $23
     None,                               // $24    BIT $NN      ZeroPage
-    None,                               // $25    AND $NN      ZeroPage
+    Some(OpCode(AND, ZeroPage)),        // $25    AND $NN      ZeroPage
     None,                               // $26    ROL $NN      ZeroPage
     None,                               // $27
     Some(OpCode(PLP, Implied)),         // $28    PLP          Implied
-    None,                               // $29    AND #$NN     Immediate
+    Some(OpCode(AND, Immediate)),       // $29    AND #$NN     Immediate
     None,                               // $2A    ROL A        Accumulator
     None,                               // $2B
     None,                               // $2C    BIT $NNNN    Absolute
-    None,                               // $2D    AND $NNNN    Absolute
+    Some(OpCode(AND, Absolute)),        // $2D    AND $NNNN    Absolute
     None,                               // $2E    ROL $NNNN    Absolute
     None,                               // $2F
     None,                               // $30    BMI $NN      Relative
-    None,                               // $31    AND ($NN),Y  IndirectIndexed
+    Some(OpCode(AND, IndirectIndexed)), // $31    AND ($NN),Y  IndirectIndexed
     None,                               // $32
     None,                               // $33
     None,                               // $34
-    None,                               // $35    AND $NN,X    ZeroPageX
+    Some(OpCode(AND, ZeroPageX)),       // $35    AND $NN,X    ZeroPageX
     None,                               // $36    ROL $NN,X    ZeroPageX
     None,                               // $37
     None,                               // $38    SEC          Implied
-    None,                               // $39    AND $NNNN,Y  AbsoluteY
+    Some(OpCode(AND, AbsoluteY)),       // $39    AND $NNNN,Y  AbsoluteY
     None,                               // $3A
     None,                               // $3B
     None,                               // $3C
-    None,                               // $3D    AND $NNNN,X  AbsoluteX
+    Some(OpCode(AND, AbsoluteX)),       // $3D    AND $NNNN,X  AbsoluteX
     None,                               // $3E    ROL $NNNN,X  AbsoluteX
     None,                               // $3F
     None,                               // $40    RTI          Implied
@@ -991,6 +999,26 @@ mod test_instructions {
         assert_eq!(cpu.sp, 0xFF);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.r, true);
+    }
+
+    #[test]
+    fn test_and() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.a = 0b00011000;
+        ram[0x8000] = 0b00001111;
+
+        OpCode(Instruction::AND, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0b00001000);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, false);
     }
 
     #[test]
