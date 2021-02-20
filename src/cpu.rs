@@ -14,15 +14,31 @@ pub struct CPU {
     pub flags: StatusFlag, // Processor Status
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct StatusFlag {
     pub c: bool, // Carry Flag
     pub z: bool, // Zero Flag
     pub i: bool, // Interrupt Disable
     pub d: bool, // Decimal Mode
     pub b: bool, // Break Command
+    pub r: bool, // Reserved (Unused, always true)
     pub v: bool, // Overflow Flag
     pub n: bool, // Negative Flag
+}
+
+impl Default for StatusFlag {
+    fn default() -> Self {
+        StatusFlag {
+            c: false,
+            z: false,
+            i: false,
+            d: false,
+            b: false,
+            r: true,
+            v: false,
+            n: false,
+        }
+    }
 }
 
 impl CPU {
@@ -86,5 +102,69 @@ impl CPU {
                 panic!("{:#01x} is not implemented!", op);
             }
         }
+    }
+}
+
+impl StatusFlag {
+    pub fn get_as_u8(&mut self) -> u8 {
+        let byte = self.c as u8
+            + ((self.z as u8) << 1)
+            + ((self.i as u8) << 2)
+            + ((self.d as u8) << 3)
+            + ((self.b as u8) << 4)
+            + ((self.r as u8) << 5)
+            + ((self.v as u8) << 6)
+            + ((self.n as u8) << 7);
+        byte
+    }
+
+    pub fn set_as_u8(&mut self, byte: u8) {
+        self.c = (byte >> 0 & 1) == 1;
+        self.z = (byte >> 1 & 1) == 1;
+        self.i = (byte >> 2 & 1) == 1;
+        self.d = (byte >> 3 & 1) == 1;
+        self.b = (byte >> 4 & 1) == 1;
+        self.r = (byte >> 5 & 1) == 1;
+        self.v = (byte >> 6 & 1) == 1;
+        self.n = (byte >> 7 & 1) == 1;
+    }
+}
+
+#[cfg(test)]
+mod test_status_flags {
+    use super::*;
+
+    #[test]
+    fn test_get_as_u8() {
+        let mut sf = StatusFlag {
+            c: true,
+            z: false,
+            i: true,
+            d: false,
+            b: true,
+            r: false,
+            v: true,
+            n: false,
+        };
+        assert_eq!(sf.get_as_u8(), 0b01010101);
+    }
+
+    #[test]
+    fn test_set_as_u8() {
+        let mut sf = StatusFlag::default();
+        sf.set_as_u8(0b01010101);
+        assert_eq!(
+            sf,
+            StatusFlag {
+                c: true,
+                z: false,
+                i: true,
+                d: false,
+                b: true,
+                r: false,
+                v: true,
+                n: false,
+            }
+        );
     }
 }
