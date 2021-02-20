@@ -95,4 +95,36 @@ mod tests {
         cpu.execute(cycles, &mut ram);
         assert_eq!(cpu.a, 0x0D);
     }
+
+    #[test]
+    fn test_case3() {
+        // https://gist.github.com/pedrofranceschi/1285964
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        cpu.reset(&mut ram);
+        /*
+        ROUTINE:
+            LDA #$42
+            RTS
+        MAIN:
+            JSR ROUTINE
+         */
+        ram.write_rom(
+            0x8000,
+            &[
+                0xA9, 0x42, //
+                0x60, //
+                // start here
+                0x20, 0x00, 0x80, //
+                0xEA,
+            ],
+        );
+
+        ram[0xFFFC] = 0x03;
+        ram[0xFFFD] = 0x80;
+
+        let cycles = 18;
+        cpu.execute(cycles, &mut ram);
+        assert_eq!(cpu.a, 0x42);
+    }
 }

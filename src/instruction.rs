@@ -559,7 +559,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(ORA, AbsoluteX)),       // $1D    ORA $NNNN,X  AbsoluteX
     Some(OpCode(ASL, AbsoluteX)),       // $1E    ASL $NNNN,X  AbsoluteX
     None,                               // $1F
-    Some(OpCode(JSR, IndexedIndirect)), // $20    JSR $NNNN    Absolute
+    Some(OpCode(JSR, Absolute)),        // $20    JSR $NNNN    Absolute
     Some(OpCode(AND, IndexedIndirect)), // $21    AND ($NN,X)  IndexedIndirect
     None,                               // $22
     None,                               // $23
