@@ -5,7 +5,7 @@ use crate::ram::RAM;
 #[derive(Debug, Default)]
 pub struct CPU {
     pub pc: u16, // Program Counter
-    pub sp: u8,  // Stack Pointer
+    pub sp: u8,  // Stack Pointer, it uses as lower byte on "0x01XX".
 
     pub a: u8, // Accumulator
     pub x: u8, // Index Register X
@@ -58,6 +58,12 @@ impl CPU {
 
     pub fn write_byte(&mut self, cycles: &mut isize, ram: &mut RAM, addr: usize, byte: u8) {
         ram.write_byte(addr, byte);
+        *cycles -= 1;
+    }
+
+    pub fn push_to_stack(&mut self, cycles: &mut isize, ram: &mut RAM, byte: u8) {
+        self.write_byte(cycles, ram, (0x0100 + self.sp as u16) as usize, byte);
+        self.sp -= 1;
         *cycles -= 1;
     }
 
