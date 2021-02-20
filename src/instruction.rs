@@ -62,6 +62,9 @@ enum Instruction {
     BVS,
 
     CLC,
+    CLD,
+    CLI,
+    CLV,
 
     NOP,
 }
@@ -472,6 +475,15 @@ impl OpCode {
             CLC => {
                 cpu.flags.c = false;
             }
+            CLD => {
+                cpu.flags.d = false;
+            }
+            CLI => {
+                cpu.flags.i = false;
+            }
+            CLV => {
+                cpu.flags.v = false;
+            }
             NOP => {
                 *cycles -= 1;
                 println!("nop");
@@ -572,7 +584,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(EOR, ZeroPageX)),       // $55    EOR $NN,X    ZeroPageX
     Some(OpCode(LSR, ZeroPageX)),       // $56    LSR $NN,X    ZeroPageX
     None,                               // $57
-    None,                               // $58    CLI          Implied
+    Some(OpCode(CLI, Implied)),         // $58    CLI          Implied
     Some(OpCode(EOR, AbsoluteY)),       // $59    EOR $NNNN,Y  AbsoluteY
     None,                               // $5A
     None,                               // $5B
@@ -668,7 +680,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(LDA, ZeroPageX)),       // $B5    LDA $NN,X    ZeroPageX
     Some(OpCode(LDX, ZeroPageY)),       // $B6    LDX $NN,Y    ZeroPageY
     None,                               // $B7
-    None,                               // $B8    CLV          Implied
+    Some(OpCode(CLV, Implied)),         // $B8    CLV          Implied
     Some(OpCode(LDA, AbsoluteY)),       // $B9    LDA $NNNN,Y  AbsoluteY
     Some(OpCode(TSX, Implied)),         // $BA    TSX          Implied
     None,                               // $BB
@@ -700,7 +712,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(CMP, ZeroPageX)),       // $D5    CMP $NN,X    ZeroPageX
     Some(OpCode(DEC, ZeroPageX)),       // $D6    DEC $NN,X    ZeroPageX
     None,                               // $D7
-    None,                               // $D8    CLD          Implied
+    Some(OpCode(CLD, Implied)),         // $D8    CLD          Implied
     Some(OpCode(CMP, AbsoluteY)),       // $D9    CMP $NNNN,Y  AbsoluteY
     None,                               // $DA
     None,                               // $DB
@@ -1915,6 +1927,39 @@ mod test_instructions {
         cpu.flags.c = true;
         OpCode(Instruction::CLC, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(cpu.flags.c, false);
+    }
+
+    #[test]
+    fn test_cld() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.flags.d = true;
+        OpCode(Instruction::CLD, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.flags.d, false);
+    }
+
+    #[test]
+    fn test_cli() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.flags.i = true;
+        OpCode(Instruction::CLI, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.flags.i, false);
+    }
+
+    #[test]
+    fn test_clv() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.flags.v = true;
+        OpCode(Instruction::CLV, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.flags.v, false);
     }
 
     #[test]
