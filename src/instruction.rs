@@ -58,6 +58,8 @@ enum Instruction {
     BEQ,
     BPL,
     BMI,
+    BVC,
+    BVS,
 
     NOP,
 }
@@ -453,6 +455,18 @@ impl OpCode {
                     cpu.pc = addr;
                 }
             }
+            BVC => {
+                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                if cpu.flags.v == false {
+                    cpu.pc = addr;
+                }
+            }
+            BVS => {
+                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                if cpu.flags.v == true {
+                    cpu.pc = addr;
+                }
+            }
             NOP => {
                 *cycles -= 1;
                 println!("nop");
@@ -545,7 +559,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(EOR, Absolute)),        // $4D    EOR $NNNN    Absolute
     Some(OpCode(LSR, Absolute)),        // $4E    LSR $NNNN    Absolute
     None,                               // $4F
-    None,                               // $50    BVC $NN      Relative
+    Some(OpCode(BVC, Relative)),        // $50    BVC $NN      Relative
     Some(OpCode(EOR, IndirectIndexed)), // $51    EOR ($NN),Y  IndirectIndexed
     None,                               // $52
     None,                               // $53
@@ -577,7 +591,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(ADC, Absolute)),        // $6D    ADC $NNNN    Absolute
     Some(OpCode(ROR, AbsoluteX)),       // $6E    ROR $NNNN,X  AbsoluteX
     None,                               // $6F
-    None,                               // $70    BVS $NN      Relative
+    Some(OpCode(BVS, Relative)),        // $70    BVS $NN      Relative
     Some(OpCode(ADC, IndirectIndexed)), // $71    ADC ($NN),Y  IndirectIndexed
     None,                               // $72
     None,                               // $73
@@ -1846,6 +1860,44 @@ mod test_instructions {
         cpu.flags.n = false;
         ram[0x8001] = 0x02_i8 as u8;
         OpCode(Instruction::BMI, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8002);
+    }
+
+    #[test]
+    fn test_bvc() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8001;
+        cpu.flags.v = false;
+        ram[0x8001] = 0x02_i8 as u8;
+        OpCode(Instruction::BVC, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8004);
+
+        cpu.pc = 0x8001;
+        cpu.flags.v = true;
+        ram[0x8001] = 0x02_i8 as u8;
+        OpCode(Instruction::BVC, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8002);
+    }
+
+    #[test]
+    fn test_bvs() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8001;
+        cpu.flags.v = true;
+        ram[0x8001] = 0x02_i8 as u8;
+        OpCode(Instruction::BVS, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8004);
+
+        cpu.pc = 0x8001;
+        cpu.flags.v = false;
+        ram[0x8001] = 0x02_i8 as u8;
+        OpCode(Instruction::BVS, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
