@@ -65,6 +65,9 @@ enum Instruction {
     CLD,
     CLI,
     CLV,
+    SEC,
+    SED,
+    SEI,
 
     NOP,
 }
@@ -484,6 +487,15 @@ impl OpCode {
             CLV => {
                 cpu.flags.v = false;
             }
+            SEC => {
+                cpu.flags.c = true;
+            }
+            SED => {
+                cpu.flags.d = true;
+            }
+            SEI => {
+                cpu.flags.i = true;
+            }
             NOP => {
                 *cycles -= 1;
                 println!("nop");
@@ -552,7 +564,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(AND, ZeroPageX)),       // $35    AND $NN,X    ZeroPageX
     Some(OpCode(ROL, ZeroPageX)),       // $36    ROL $NN,X    ZeroPageX
     None,                               // $37
-    None,                               // $38    SEC          Implied
+    Some(OpCode(SEC, Implied)),         // $38    SEC          Implied
     Some(OpCode(AND, AbsoluteY)),       // $39    AND $NNNN,Y  AbsoluteY
     None,                               // $3A
     None,                               // $3B
@@ -616,7 +628,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(ADC, ZeroPageX)),       // $75    ADC $NN,X    ZeroPageX
     Some(OpCode(ROR, ZeroPageX)),       // $76    ROR $NN,X    ZeroPageX
     None,                               // $77
-    None,                               // $78    SEI          Implied
+    Some(OpCode(SEI, Implied)),         // $78    SEI          Implied
     Some(OpCode(ADC, AbsoluteY)),       // $79    ADC $NNNN,Y  AbsoluteY
     None,                               // $7A
     None,                               // $7B
@@ -744,7 +756,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(SBC, ZeroPageX)),       // $F5    SBC $NN,X    ZeroPageX
     Some(OpCode(INC, ZeroPageX)),       // $F6    INC $NN,X    ZeroPageX
     None,                               // $F7
-    None,                               // $F8    SED          Implied
+    Some(OpCode(SED, Implied)),         // $F8    SED          Implied
     Some(OpCode(SBC, AbsoluteY)),       // $F9    SBC $NNNN,Y  AbsoluteY
     None,                               // $FA
     None,                               // $FB
@@ -1960,6 +1972,39 @@ mod test_instructions {
         cpu.flags.v = true;
         OpCode(Instruction::CLV, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(cpu.flags.v, false);
+    }
+
+    #[test]
+    fn test_sec() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.flags.c = false;
+        OpCode(Instruction::SEC, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.flags.c, true);
+    }
+
+    #[test]
+    fn test_sed() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.flags.d = false;
+        OpCode(Instruction::SED, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.flags.d, true);
+    }
+
+    #[test]
+    fn test_sei() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.flags.i = false;
+        OpCode(Instruction::SEI, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.flags.i, true);
     }
 
     #[test]
