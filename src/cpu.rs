@@ -90,7 +90,7 @@ impl CPU {
         byte
     }
 
-    pub fn set_accumlator(&mut self, byte: u8) {
+    pub fn set_accumulator(&mut self, byte: u8) {
         self.a = byte;
         self.flags.z = byte == 0;
         self.flags.n = (byte >> 7 & 1) == 1;

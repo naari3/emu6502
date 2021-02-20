@@ -159,7 +159,7 @@ impl OpCode {
         match ins {
             LDA => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
-                cpu.set_accumlator(byte);
+                cpu.set_accumulator(byte);
             }
             LDX => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
@@ -190,11 +190,11 @@ impl OpCode {
                 *cycles -= 1;
             }
             TXA => {
-                cpu.set_accumlator(cpu.x);
+                cpu.set_accumulator(cpu.x);
                 *cycles -= 1;
             }
             TYA => {
-                cpu.set_accumlator(cpu.y);
+                cpu.set_accumulator(cpu.y);
                 *cycles -= 1;
             }
             TSX => {
@@ -210,7 +210,7 @@ impl OpCode {
             }
             PLA => {
                 let byte = cpu.pull_from_stack(cycles, ram);
-                cpu.set_accumlator(byte);
+                cpu.set_accumulator(byte);
                 *cycles -= 1;
             }
             PHP => {
@@ -224,15 +224,15 @@ impl OpCode {
             }
             AND => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
-                cpu.set_accumlator(cpu.a & byte);
+                cpu.set_accumulator(cpu.a & byte);
             }
             EOR => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
-                cpu.set_accumlator(cpu.a ^ byte);
+                cpu.set_accumulator(cpu.a ^ byte);
             }
             ORA => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
-                cpu.set_accumlator(cpu.a | byte);
+                cpu.set_accumulator(cpu.a | byte);
             }
             BIT => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
