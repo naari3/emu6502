@@ -39,6 +39,9 @@ enum Instruction {
     INC,
     INX,
     INY,
+    DEC,
+    DEX,
+    DEY,
 
     ASL,
     LSR,
@@ -306,6 +309,23 @@ impl OpCode {
                 let byte = byte.wrapping_add(1);
                 cpu.set_index_y(byte);
             }
+            DEC => {
+                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let byte = cpu.read_byte(cycles, ram, addr as usize);
+                let byte = byte.wrapping_sub(1);
+                cpu.set_zero_and_negative_flag(byte);
+                cpu.write_byte(cycles, ram, addr as usize, byte);
+            }
+            DEX => {
+                let byte = cpu.x;
+                let byte = byte.wrapping_sub(1);
+                cpu.set_index_x(byte);
+            }
+            DEY => {
+                let byte = cpu.y;
+                let byte = byte.wrapping_sub(1);
+                cpu.set_index_y(byte);
+            }
             ASL => {
                 if let Accumulator = adr_mode {
                     let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
@@ -522,7 +542,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(STA, ZeroPage)),        // $85    STA $NN      ZeroPage
     Some(OpCode(STX, ZeroPage)),        // $86    STX $NN      ZeroPage
     None,                               // $87
-    None,                               // $88    DEY          Implied
+    Some(OpCode(DEY, Implied)),         // $88    DEY          Implied
     None,                               // $89
     Some(OpCode(TXA, Implied)),         // $8A    TXA          Implied
     None,                               // $8B
@@ -584,15 +604,15 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $C3
     Some(OpCode(CPY, ZeroPage)),        // $C4    CPY $NN      ZeroPage
     Some(OpCode(CMP, ZeroPage)),        // $C5    CMP $NN      ZeroPage
-    None,                               // $C6    DEC $NN      ZeroPage
+    Some(OpCode(DEC, ZeroPage)),        // $C6    DEC $NN      ZeroPage
     None,                               // $C7
     Some(OpCode(INY, Implied)),         // $C8    INY          Implied
     Some(OpCode(CMP, Immediate)),       // $C9    CMP #$NN     Immediate
-    None,                               // $CA    DEX          Implied
+    Some(OpCode(DEX, Implied)),         // $CA    DEX          Implied
     None,                               // $CB
     Some(OpCode(CPY, Absolute)),        // $CC    CPY $NNNN    Absolute
     Some(OpCode(CMP, Absolute)),        // $CD    CMP $NNNN    Absolute
-    None,                               // $CE    DEC $NNNN    Absolute
+    Some(OpCode(DEC, Absolute)),        // $CE    DEC $NNNN    Absolute
     None,                               // $CF
     None,                               // $D0    BNE $NN      Relative
     Some(OpCode(CMP, IndirectIndexed)), // $D1    CMP ($NN),Y  IndirectIndexed
@@ -600,7 +620,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $D3
     None,                               // $D4
     Some(OpCode(CMP, ZeroPageX)),       // $D5    CMP $NN,X    ZeroPageX
-    None,                               // $D6    DEC $NN,X    ZeroPageX
+    Some(OpCode(DEC, ZeroPageX)),       // $D6    DEC $NN,X    ZeroPageX
     None,                               // $D7
     None,                               // $D8    CLD          Implied
     Some(OpCode(CMP, AbsoluteY)),       // $D9    CMP $NNNN,Y  AbsoluteY
@@ -608,7 +628,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $DB
     None,                               // $DC
     Some(OpCode(CMP, AbsoluteX)),       // $DD    CMP $NNNN,X  AbsoluteX
-    None,                               // $DE    DEC $NNNN,X  AbsoluteX
+    Some(OpCode(DEC, AbsoluteX)),       // $DE    DEC $NNNN,X  AbsoluteX
     None,                               // $DF
     Some(OpCode(CPX, Immediate)),       // $E0    CPX #$NN     Immediate
     Some(OpCode(SBC, IndexedIndirect)), // $E1    SBC ($NN,X)  IndexedIndirect
@@ -1442,6 +1462,59 @@ mod test_instructions {
         assert_eq!(cpu.y, 0x00);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
+    }
+
+    #[test]
+    fn test_dec() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x00;
+        ram[0x00] = 0x01;
+        OpCode(Instruction::DEC, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(ram[0x00], 0x00);
+        assert_eq!(cpu.flags.z, true);
+        assert_eq!(cpu.flags.n, false);
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x00;
+        ram[0x00] = 0x00;
+        OpCode(Instruction::DEC, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(ram[0x00], 0xFF);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, true);
+    }
+
+    #[test]
+    fn test_dex() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.x = 0x01;
+        OpCode(Instruction::DEX, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.x, 0x00);
+
+        cpu.x = 0x00;
+        OpCode(Instruction::DEX, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.x, 0xFF);
+    }
+
+    #[test]
+    fn test_dey() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.y = 0x01;
+        OpCode(Instruction::DEY, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.y, 0x00);
+
+        cpu.y = 0x00;
+        OpCode(Instruction::DEY, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.y, 0xFF);
     }
 
     #[test]
