@@ -157,7 +157,6 @@ impl AddressingMode {
                 let addr = cpu.fetch_byte(cycles, ram) as u16
                     + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
                     + cpu.x as u16;
-                *cycles -= 1;
                 if before_pc & 0xFF00 != addr & 0xFF00 {
                     *cycles -= 1;
                 }
@@ -168,7 +167,6 @@ impl AddressingMode {
                 let addr = cpu.fetch_byte(cycles, ram) as u16
                     + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
                     + cpu.y as u16;
-                *cycles -= 1;
                 if before_pc & 0xFF00 != addr & 0xFF00 {
                     *cycles -= 1;
                 }
@@ -185,7 +183,7 @@ impl AddressingMode {
                 let ind_addr = cpu.fetch_byte(cycles, ram) as u16 + cpu.x as u16;
                 let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8);
-                *cycles -= 2;
+                *cycles -= 1;
                 Some(addr)
             }
             IndirectIndexed => {
@@ -193,7 +191,6 @@ impl AddressingMode {
                 let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8)
                     + cpu.y as u16;
-                *cycles -= 1;
                 if (addr - cpu.y as u16) & 0xFF00 != addr & 0xFF00 {
                     *cycles -= 1;
                 }
@@ -939,18 +936,22 @@ mod test_addressing_modes {
 
         let mut cycles = 3;
         cpu.pc = 0x8000;
+        cpu.x = 1;
         ram[0x8000] = 0x50;
         ram[0x8001] = 0x80;
-        let addr = AddressingMode::AbsoluteX.get_address(&mut cpu, &mut cycles, &mut ram);
-        assert_eq!(addr, Some(0x8051));
+        ram[0x8051] = 0x42;
+        let addr = AddressingMode::AbsoluteX.fetch(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(addr, Some(0x42));
         assert_eq!(cycles, 0);
 
         let mut cycles = 4;
         cpu.pc = 0x8000;
+        cpu.x = 1;
         ram[0x8000] = 0x50;
         ram[0x8001] = 0x81;
-        let addr = AddressingMode::AbsoluteX.get_address(&mut cpu, &mut cycles, &mut ram);
-        assert_eq!(addr, Some(0x8151));
+        ram[0x8151] = 0x42;
+        let addr = AddressingMode::AbsoluteX.fetch(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(addr, Some(0x42));
         assert_eq!(cycles, 0);
     }
 
@@ -976,16 +977,18 @@ mod test_addressing_modes {
         cpu.pc = 0x8000;
         ram[0x8000] = 0x50;
         ram[0x8001] = 0x80;
-        let addr = AddressingMode::AbsoluteY.get_address(&mut cpu, &mut cycles, &mut ram);
-        assert_eq!(addr, Some(0x8051));
+        ram[0x8051] = 0x42;
+        let addr = AddressingMode::AbsoluteY.fetch(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(addr, Some(0x42));
         assert_eq!(cycles, 0);
 
         let mut cycles = 4;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x50;
         ram[0x8001] = 0x81;
-        let addr = AddressingMode::AbsoluteY.get_address(&mut cpu, &mut cycles, &mut ram);
-        assert_eq!(addr, Some(0x8151));
+        ram[0x8151] = 0x42;
+        let addr = AddressingMode::AbsoluteY.fetch(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(addr, Some(0x42));
         assert_eq!(cycles, 0);
     }
 
@@ -1009,7 +1012,7 @@ mod test_addressing_modes {
     fn test_indexed_indirect() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 5;
+        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.x = 1;
@@ -1018,9 +1021,8 @@ mod test_addressing_modes {
         ram[0x02] = 0x03;
         let byte = AddressingMode::IndexedIndirect.get_address(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x0304));
-        assert_eq!(cycles, 0);
 
-        let mut cycles = 999;
+        let mut cycles = 5;
         cpu.pc = 0x8000;
         cpu.x = 1;
         ram[0x8000] = 0x00;
@@ -1029,6 +1031,7 @@ mod test_addressing_modes {
         ram[0x0304] = 0x42;
         let byte = AddressingMode::IndexedIndirect.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x42));
+        assert_eq!(cycles, 0);
     }
 
     #[test]
@@ -1060,8 +1063,9 @@ mod test_addressing_modes {
         ram[0x8000] = 0x01;
         ram[0x01] = 0x04;
         ram[0x02] = 0x03;
-        let byte = AddressingMode::IndirectIndexed.get_address(&mut cpu, &mut cycles, &mut ram);
-        assert_eq!(byte, Some(0x0305));
+        ram[0x0305] = 0x42;
+        let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(byte, Some(0x42));
         assert_eq!(cycles, 0);
 
         let mut cycles = 5;
@@ -1070,8 +1074,9 @@ mod test_addressing_modes {
         ram[0x8000] = 0x01;
         ram[0x01] = 0xF4;
         ram[0x02] = 0x02;
-        let byte = AddressingMode::IndirectIndexed.get_address(&mut cpu, &mut cycles, &mut ram);
-        assert_eq!(byte, Some(0x0304));
+        ram[0x0304] = 0x42;
+        let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(byte, Some(0x42));
         assert_eq!(cycles, 0);
     }
 }
