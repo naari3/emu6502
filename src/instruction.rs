@@ -50,6 +50,7 @@ enum Instruction {
 
     JMP,
     JSR,
+    RTS,
 
     NOP,
 }
@@ -402,6 +403,11 @@ impl OpCode {
                 cpu.push_to_stack(cycles, ram, (pc >> 8) as u8);
                 cpu.pc = addr;
             }
+            RTS => {
+                let pc = ((cpu.pull_from_stack(cycles, ram) as u16) << 8)
+                    + cpu.pull_from_stack(cycles, ram) as u16;
+                cpu.pc = pc + 1;
+            }
             NOP => {
                 *cycles -= 1;
                 println!("nop");
@@ -510,7 +516,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(EOR, AbsoluteX)),       // $5D    EOR $NNNN,X  AbsoluteX
     Some(OpCode(LSR, AbsoluteX)),       // $5E    LSR $NNNN,X  AbsoluteX
     None,                               // $5F
-    None,                               // $60    RTS          Implied
+    Some(OpCode(RTS, Implied)),         // $60    RTS          Implied
     Some(OpCode(ADC, IndexedIndirect)), // $61    ADC ($NN,X)  IndexedIndirect
     None,                               // $62
     None,                               // $63
@@ -1653,11 +1659,23 @@ mod test_instructions {
         ram[0x8001] = 0x02;
         ram[0x8002] = 0x01;
         OpCode(Instruction::JSR, AddressingMode::Absolute).execute(&mut cpu, &mut cycles, &mut ram);
-        println!("ram[0x01FF]: {}", ram[0x01FF]);
-        println!("ram[0x01FE]: {}", ram[0x01FE]);
         assert_eq!(cpu.pc, 0x0102);
         assert_eq!(ram[0x01FF], 0x02);
         assert_eq!(ram[0x01FE], 0x80);
+    }
+
+    #[test]
+    fn test_rts() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.sp = 0xFD;
+        ram[0x01FE] = 0x01;
+        ram[0x01FF] = 0x02;
+        OpCode(Instruction::RTS, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x0103);
     }
 
     #[test]
