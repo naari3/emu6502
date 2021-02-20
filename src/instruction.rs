@@ -1,3 +1,5 @@
+use std::usize;
+
 use crate::cpu::CPU;
 use crate::ram::RAM;
 
@@ -27,6 +29,8 @@ enum Instruction {
     EOR,
     ORA,
     BIT,
+
+    ASL,
 
     JMP,
 
@@ -240,6 +244,20 @@ impl OpCode {
                 cpu.flags.v = (byte >> 5 & 1) == 1;
                 cpu.flags.n = (byte >> 6 & 1) == 1;
             }
+            ASL => {
+                if let Accumulator = adr_mode {
+                    let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                    cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
+                    cpu.set_accumulator(byte << 1);
+                } else {
+                    let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                    let byte = cpu.read_byte(cycles, ram, addr as usize);
+                    cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
+                    let byte = byte << 1;
+                    cpu.set_zero_and_negative_flag(byte << 1);
+                    cpu.write_byte(cycles, ram, addr as usize, byte);
+                }
+            }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
@@ -262,15 +280,15 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $03
     None,                               // $04
     Some(OpCode(ORA, ZeroPage)),        // $05    ORA $NN      ZeroPage
-    None,                               // $06    ASL $NN      ZeroPage
+    Some(OpCode(ASL, ZeroPage)),        // $06    ASL $NN      ZeroPage
     None,                               // $07
     Some(OpCode(PHP, Implied)),         // $08    PHP          Implied
     Some(OpCode(ORA, Immediate)),       // $09    ORA #$NN     Immediate
-    None,                               // $0A    ASL A        Accumulator
+    Some(OpCode(ASL, Accumulator)),     // $0A    ASL A        Accumulator
     None,                               // $0B
     None,                               // $0C
     Some(OpCode(ORA, Absolute)),        // $0D    ORA $NNNN    Absolute
-    None,                               // $0E    ASL $NNNN    Absolute
+    Some(OpCode(ASL, Absolute)),        // $0E    ASL $NNNN    Absolute
     None,                               // $0F
     None,                               // $10    BPL $NN      Relative
     Some(OpCode(ORA, IndirectIndexed)), // $11    ORA ($NN),Y  IndirectIndexed
@@ -278,7 +296,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $13
     None,                               // $14
     Some(OpCode(ORA, ZeroPageX)),       // $15    ORA $NN,X    ZeroPageX
-    None,                               // $16    ASL $NN,X    ZeroPageX
+    Some(OpCode(ASL, ZeroPageX)),       // $16    ASL $NN,X    ZeroPageX
     None,                               // $17
     None,                               // $18    CLC          Implied
     Some(OpCode(ORA, AbsoluteY)),       // $19    ORA $NNNN,Y  AbsoluteY
@@ -286,7 +304,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $1B
     None,                               // $1C
     Some(OpCode(ORA, AbsoluteX)),       // $1D    ORA $NNNN,X  AbsoluteX
-    None,                               // $1E    ASL $NNNN,X  AbsoluteX
+    Some(OpCode(ASL, AbsoluteX)),       // $1E    ASL $NNNN,X  AbsoluteX
     None,                               // $1F
     None,                               // $20    JSR $NNNN    Absolute
     Some(OpCode(AND, IndexedIndirect)), // $21    AND ($NN,X)  IndexedIndirect
@@ -1096,6 +1114,29 @@ mod test_instructions {
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.v, true);
         assert_eq!(cpu.flags.n, true);
+    }
+
+    #[test]
+    fn test_asl() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.a = 0b10111111;
+        OpCode(Instruction::ASL, AddressingMode::Accumulator).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0b01111110);
+        assert_eq!(cpu.flags.c, true);
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x01;
+        ram[0x01] = 0b01000000;
+        OpCode(Instruction::ASL, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(ram[0x01], 0b10000000);
+        assert_eq!(cpu.flags.c, false);
     }
 
     #[test]

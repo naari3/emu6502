@@ -90,22 +90,24 @@ impl CPU {
         byte
     }
 
-    pub fn set_accumulator(&mut self, byte: u8) {
-        self.a = byte;
+    pub fn set_zero_and_negative_flag(&mut self, byte: u8) {
         self.flags.z = byte == 0;
         self.flags.n = (byte >> 7 & 1) == 1;
+    }
+
+    pub fn set_accumulator(&mut self, byte: u8) {
+        self.a = byte;
+        self.set_zero_and_negative_flag(byte);
     }
 
     pub fn set_index_x(&mut self, byte: u8) {
         self.x = byte;
-        self.flags.z = byte == 0;
-        self.flags.n = (byte >> 7 & 1) == 1;
+        self.set_zero_and_negative_flag(byte);
     }
 
     pub fn set_index_y(&mut self, byte: u8) {
         self.y = byte;
-        self.flags.z = byte == 0;
-        self.flags.n = (byte >> 7 & 1) == 1;
+        self.set_zero_and_negative_flag(byte);
     }
 
     pub fn execute(&mut self, mut cycles: isize, ram: &mut RAM) {
