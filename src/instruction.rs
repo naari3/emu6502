@@ -49,6 +49,7 @@ enum Instruction {
     ROR,
 
     JMP,
+    JSR,
 
     NOP,
 }
@@ -394,6 +395,13 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
             }
+            JSR => {
+                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let pc = cpu.pc - 1;
+                cpu.push_to_stack(cycles, ram, (pc & 0xFF) as u8);
+                cpu.push_to_stack(cycles, ram, (pc >> 8) as u8);
+                cpu.pc = addr;
+            }
             NOP => {
                 *cycles -= 1;
                 println!("nop");
@@ -438,7 +446,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(ORA, AbsoluteX)),       // $1D    ORA $NNNN,X  AbsoluteX
     Some(OpCode(ASL, AbsoluteX)),       // $1E    ASL $NNNN,X  AbsoluteX
     None,                               // $1F
-    None,                               // $20    JSR $NNNN    Absolute
+    Some(OpCode(JSR, IndexedIndirect)), // $20    JSR $NNNN    Absolute
     Some(OpCode(AND, IndexedIndirect)), // $21    AND ($NN,X)  IndexedIndirect
     None,                               // $22
     None,                               // $23
@@ -1632,6 +1640,24 @@ mod test_instructions {
         ram[0x0103] = 0x03;
         OpCode(Instruction::JMP, AddressingMode::Indirect).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(cpu.pc, 0x0304);
+    }
+
+    #[test]
+    fn test_jsr() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8001;
+        cpu.sp = 0xFF;
+        ram[0x8001] = 0x02;
+        ram[0x8002] = 0x01;
+        OpCode(Instruction::JSR, AddressingMode::Absolute).execute(&mut cpu, &mut cycles, &mut ram);
+        println!("ram[0x01FF]: {}", ram[0x01FF]);
+        println!("ram[0x01FE]: {}", ram[0x01FE]);
+        assert_eq!(cpu.pc, 0x0102);
+        assert_eq!(ram[0x01FF], 0x02);
+        assert_eq!(ram[0x01FE], 0x80);
     }
 
     #[test]
