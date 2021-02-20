@@ -69,6 +69,7 @@ enum Instruction {
     SED,
     SEI,
 
+    BRK,
     NOP,
 }
 
@@ -496,6 +497,16 @@ impl OpCode {
             SEI => {
                 cpu.flags.i = true;
             }
+            BRK => {
+                let pc = cpu.pc;
+                cpu.push_to_stack(cycles, ram, (pc & 0xFF) as u8);
+                cpu.push_to_stack(cycles, ram, (pc >> 8) as u8);
+                cpu.flags.b = true;
+                let flags = cpu.flags.get_as_u8();
+                cpu.push_to_stack(cycles, ram, flags);
+                cpu.flags.i = true;
+                cpu.pc = ram[0xFFFE] as u16 + (ram[0xFFFF] as u16) << 8;
+            }
             NOP => {
                 *cycles -= 1;
                 println!("nop");
@@ -508,7 +519,7 @@ use AddressingMode::*;
 use Instruction::*;
 #[allow(dead_code)]
 pub const OPCODES: [Option<OpCode>; 0x100] = [
-    None,                               // $00    BRK	         Implied
+    Some(OpCode(BRK, Implied)),         // $00    BRK	         Implied
     Some(OpCode(ORA, IndexedIndirect)), // $01    ORA ($NN,X)  IndexedIndirect
     None,                               // $02
     None,                               // $03
@@ -2004,6 +2015,21 @@ mod test_instructions {
 
         cpu.flags.i = false;
         OpCode(Instruction::SEI, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.flags.i, true);
+    }
+
+    #[test]
+    fn test_brk() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.sp = 0xFF;
+        OpCode(Instruction::BRK, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(ram[0x01FF], 0x00);
+        assert_eq!(ram[0x01FE], 0x80);
+        assert_eq!(ram[0x01FD], 0b00110000);
         assert_eq!(cpu.flags.i, true);
     }
 
