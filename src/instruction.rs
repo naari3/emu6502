@@ -526,7 +526,6 @@ impl OpCode {
 
 use AddressingMode::*;
 use Instruction::*;
-#[allow(dead_code)]
 pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(BRK, Implied)),         // $00    BRK	         Implied
     Some(OpCode(ORA, IndexedIndirect)), // $01    ORA ($NN,X)  IndexedIndirect
