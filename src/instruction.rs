@@ -53,6 +53,7 @@ enum Instruction {
     RTS,
 
     BCC,
+    BCS,
 
     NOP,
 }
@@ -418,6 +419,12 @@ impl OpCode {
                     cpu.pc = addr;
                 }
             }
+            BCS => {
+                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                if cpu.flags.c == true {
+                    cpu.pc = addr;
+                }
+            }
             NOP => {
                 *cycles -= 1;
                 println!("nop");
@@ -606,7 +613,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(LDA, Absolute)),        // $AD    LDA $NNNN    Absolute
     Some(OpCode(LDX, Absolute)),        // $AE    LDX $NNNN    Absolute
     None,                               // $AF
-    None,                               // $B0    BCS $NN      Relative
+    Some(OpCode(BCS, Relative)),        // $B0    BCS $NN      Relative
     Some(OpCode(LDA, IndirectIndexed)), // $B1    LDA ($NN),Y  IndirectIndexed
     None,                               // $B2
     None,                               // $B3
@@ -1707,9 +1714,35 @@ mod test_instructions {
         let mut cycles = 999;
 
         cpu.pc = 0x8001;
-        ram[0x8001] = 0x01_i8 as u8;
+        cpu.flags.c = false;
+        ram[0x8001] = 0x02_i8 as u8;
         OpCode(Instruction::BCC, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
-        assert_eq!(cpu.pc, 0x8003);
+        assert_eq!(cpu.pc, 0x8004);
+
+        cpu.pc = 0x8001;
+        cpu.flags.c = true;
+        ram[0x8001] = 0x02_i8 as u8;
+        OpCode(Instruction::BCC, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8002);
+    }
+
+    #[test]
+    fn test_bcs() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8001;
+        cpu.flags.c = true;
+        ram[0x8001] = 0x02_i8 as u8;
+        OpCode(Instruction::BCS, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8004);
+
+        cpu.pc = 0x8001;
+        cpu.flags.c = false;
+        ram[0x8001] = 0x02_i8 as u8;
+        OpCode(Instruction::BCS, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8002);
     }
 
     #[test]
