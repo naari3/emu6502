@@ -79,12 +79,12 @@ impl CPU {
 
     pub fn push_to_stack(&mut self, cycles: &mut isize, ram: &mut RAM, byte: u8) {
         self.write_byte(cycles, ram, (0x0100 + self.sp as u16) as usize, byte);
-        self.sp -= 1;
+        self.sp = self.sp.wrapping_sub(1);
         *cycles -= 1;
     }
 
     pub fn pull_from_stack(&mut self, cycles: &mut isize, ram: &mut RAM) -> u8 {
-        self.sp += 1;
+        self.sp = self.sp.wrapping_add(1);
         let byte = self.read_byte(cycles, ram, (0x0100 + self.sp as u16) as usize);
         *cycles -= 1;
         byte
