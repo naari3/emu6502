@@ -24,6 +24,7 @@ enum Instruction {
     PLP,
 
     AND,
+    EOR,
 
     JMP,
 
@@ -241,6 +242,12 @@ impl OpCode {
                 cpu.flags.z = cpu.a == 0;
                 cpu.flags.n = cpu.a >> 6 & 1 == 1;
             }
+            EOR => {
+                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                cpu.a = cpu.a ^ byte;
+                cpu.flags.z = cpu.a == 0;
+                cpu.flags.n = cpu.a >> 6 & 1 == 1;
+            }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
@@ -322,35 +329,35 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $3E    ROL $NNNN,X  AbsoluteX
     None,                               // $3F
     None,                               // $40    RTI          Implied
-    None,                               // $41    EOR ($NN,X)  IndexedIndirect
+    Some(OpCode(EOR, IndexedIndirect)), // $41    EOR ($NN,X)  IndexedIndirect
     None,                               // $42
     None,                               // $43
     None,                               // $44
-    None,                               // $45    EOR $NN      ZeroPage
+    Some(OpCode(EOR, ZeroPage)),        // $45    EOR $NN      ZeroPage
     None,                               // $46    LSR $NN      ZeroPage
     None,                               // $47
     Some(OpCode(PHA, Implied)),         // $48    PHA          Implied
-    None,                               // $49    EOR #$NN     Immediate
+    Some(OpCode(EOR, Immediate)),       // $49    EOR #$NN     Immediate
     None,                               // $4A    LSR A        Accumulator
     None,                               // $4B
     Some(OpCode(JMP, Absolute)),        // $4C    JMP $NNNN    Absolute
-    None,                               // $4D    EOR $NNNN    Absolute
+    Some(OpCode(EOR, Absolute)),        // $4D    EOR $NNNN    Absolute
     None,                               // $4E    LSR $NNNN    Absolute
     None,                               // $4F
     None,                               // $50    BVC $NN      Relative
-    None,                               // $51    EOR ($NN),Y  IndirectIndexed
+    Some(OpCode(EOR, IndirectIndexed)), // $51    EOR ($NN),Y  IndirectIndexed
     None,                               // $52
     None,                               // $53
     None,                               // $54
-    None,                               // $55    EOR $NN,X    ZeroPageX
+    Some(OpCode(EOR, ZeroPageX)),       // $55    EOR $NN,X    ZeroPageX
     None,                               // $56    LSR $NN,X    ZeroPageX
     None,                               // $57
     None,                               // $58    CLI          Implied
-    None,                               // $59    EOR $NNNN,Y  AbsoluteY
+    Some(OpCode(EOR, AbsoluteY)),       // $59    EOR $NNNN,Y  AbsoluteY
     None,                               // $5A
     None,                               // $5B
     None,                               // $5C
-    None,                               // $5D    EOR $NNNN,X  AbsoluteX
+    Some(OpCode(EOR, AbsoluteX)),       // $5D    EOR $NNNN,X  AbsoluteX
     None,                               // $5E    LSR $NNNN,X  AbsoluteX
     None,                               // $5F
     None,                               // $60    RTS          Implied
@@ -1017,6 +1024,26 @@ mod test_instructions {
             &mut ram,
         );
         assert_eq!(cpu.a, 0b00001000);
+        assert_eq!(cpu.flags.z, false);
+        assert_eq!(cpu.flags.n, false);
+    }
+
+    #[test]
+    fn test_eor() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.a = 0b00001111;
+        ram[0x8000] = 0b00001000;
+
+        OpCode(Instruction::EOR, AddressingMode::Immediate).execute(
+            &mut cpu,
+            &mut cycles,
+            &mut ram,
+        );
+        assert_eq!(cpu.a, 0b00000111);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
     }
