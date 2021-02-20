@@ -71,6 +71,7 @@ enum Instruction {
 
     BRK,
     NOP,
+    RTI,
 }
 
 #[derive(Debug)]
@@ -511,6 +512,14 @@ impl OpCode {
                 *cycles -= 1;
                 println!("nop");
             }
+            RTI => {
+                let flags = cpu.pull_from_stack(cycles, ram);
+                cpu.flags.set_as_u8(flags);
+                cpu.flags.b = false;
+                cpu.pc = ((cpu.pull_from_stack(cycles, ram) as u16)
+                    << 8 + cpu.pull_from_stack(cycles, ram) as u16)
+                    + 1;
+            }
         }
     }
 }
@@ -583,7 +592,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(AND, AbsoluteX)),       // $3D    AND $NNNN,X  AbsoluteX
     Some(OpCode(ROL, AbsoluteX)),       // $3E    ROL $NNNN,X  AbsoluteX
     None,                               // $3F
-    None,                               // $40    RTI          Implied
+    Some(OpCode(RTI, Implied)),         // $40    RTI          Implied
     Some(OpCode(EOR, IndexedIndirect)), // $41    EOR ($NN,X)  IndexedIndirect
     None,                               // $42
     None,                               // $43
@@ -2031,6 +2040,25 @@ mod test_instructions {
         assert_eq!(ram[0x01FE], 0x80);
         assert_eq!(ram[0x01FD], 0b00110000);
         assert_eq!(cpu.flags.i, true);
+    }
+
+    #[test]
+    fn test_rti() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.sp = 0xFC;
+        cpu.flags.i = true;
+        ram[0x01FD] = 0b00110001;
+        ram[0x01FE] = 0x90;
+        ram[0x01FF] = 0x00;
+        OpCode(Instruction::RTI, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.flags.c, true);
+        assert_eq!(cpu.flags.i, false);
+        assert_eq!(cpu.flags.b, false);
+        assert_eq!(cpu.pc, 0x9001);
     }
 
     #[test]
