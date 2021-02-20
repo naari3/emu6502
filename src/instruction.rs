@@ -20,6 +20,7 @@ enum Instruction {
 
     PHA,
     PLA,
+    PHP,
 
     JMP,
 
@@ -208,6 +209,10 @@ impl OpCode {
                 cpu.flags.n = byte >> 6 & 1 == 1;
                 *cycles -= 1;
             }
+            PHP => {
+                let byte = cpu.flags.get_as_u8();
+                cpu.push_to_stack(cycles, ram, byte);
+            }
             JMP => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
@@ -232,7 +237,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                         // $05    ORA $NN      Zero Page
     None,                         // $06    ASL $NN      Zero Page
     None,                         // $07
-    None,                         // $08    PHP          Implied
+    Some(OpCode(PHP, Implied)),   // $08    PHP          Implied
     None,                         // $09    ORA #$NN     Immediate
     None,                         // $0A    ASL A        Accumulator
     None,                         // $0B
@@ -887,6 +892,21 @@ mod test_instructions {
         OpCode(Instruction::PLA, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(cpu.sp, 0xFF);
         assert_eq!(cpu.a, 0x42);
+    }
+
+    #[test]
+    fn test_php() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.sp = 0xFF;
+        cpu.flags.c = true;
+        cpu.flags.r = true;
+
+        OpCode(Instruction::PHP, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.sp, 0xFE);
+        assert_eq!(ram[0x1FF], 0b00100001);
     }
 
     #[test]
