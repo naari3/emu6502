@@ -679,8 +679,17 @@ mod test_addressing_modes {
         ram[0x0102] = 0x04;
         ram[0x0103] = 0x03;
         let byte = AddressingMode::IndexedIndirect.get_address(&mut cpu, &mut cycles, &mut ram);
-
         assert_eq!(byte, Some(0x0304));
+
+        cpu.pc = 0x8000;
+        cpu.x = 1;
+        ram[0x8000] = 0x01;
+        ram[0x8001] = 0x01;
+        ram[0x0102] = 0x04;
+        ram[0x0103] = 0x03;
+        ram[0x0304] = 0x42;
+        let byte = AddressingMode::IndexedIndirect.fetch(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(byte, Some(0x42));
     }
 
     #[test]
