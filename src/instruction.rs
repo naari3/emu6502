@@ -63,7 +63,7 @@ enum AddressingMode {
     ZeroPage,
     ZeroPageX,
     ZeroPageY,
-    // Relative,
+    Relative,
     Absolute,
     AbsoluteX,
     AbsoluteY,
@@ -110,6 +110,7 @@ impl AddressingMode {
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             Implied => panic!("You can't call fetch from {:?}!", self),
+            Relative => panic!("You can't call fetch from {:?}!", self),
             Indirect => panic!("You can't call fetch from {:?}!", self),
         }
     }
@@ -125,6 +126,7 @@ impl AddressingMode {
                 *cycles -= 1; // may be consumed by add y
                 Some((cpu.fetch_byte(cycles, ram) + cpu.y).into())
             }
+            Relative => Some((((cpu.fetch_byte(cycles, ram) as i8) as i32) + cpu.pc as i32) as u16),
             Absolute => {
                 let addr = cpu.fetch_byte(cycles, ram) as u16
                     + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
@@ -756,6 +758,18 @@ mod test_addressing_modes {
         cpu.pc = 0x8000;
         let addr = AddressingMode::ZeroPageY.get_address(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(addr, Some(0x12));
+    }
+
+    #[test]
+    fn test_relative() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8001;
+        ram[0x8001] = 0x02;
+        let addr = AddressingMode::Relative.get_address(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(addr, Some(0x8004));
     }
 
     #[test]
