@@ -56,6 +56,8 @@ enum Instruction {
     BCS,
     BNE,
     BEQ,
+    BPL,
+    BMI,
 
     NOP,
 }
@@ -439,6 +441,18 @@ impl OpCode {
                     cpu.pc = addr;
                 }
             }
+            BPL => {
+                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                if cpu.flags.n == false {
+                    cpu.pc = addr;
+                }
+            }
+            BMI => {
+                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                if cpu.flags.n == true {
+                    cpu.pc = addr;
+                }
+            }
             NOP => {
                 *cycles -= 1;
                 println!("nop");
@@ -467,7 +481,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(ORA, Absolute)),        // $0D    ORA $NNNN    Absolute
     Some(OpCode(ASL, Absolute)),        // $0E    ASL $NNNN    Absolute
     None,                               // $0F
-    None,                               // $10    BPL $NN      Relative
+    Some(OpCode(BPL, Relative)),        // $10    BPL $NN      Relative
     Some(OpCode(ORA, IndirectIndexed)), // $11    ORA ($NN),Y  IndirectIndexed
     None,                               // $12
     None,                               // $13
@@ -499,7 +513,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(AND, Absolute)),        // $2D    AND $NNNN    Absolute
     Some(OpCode(ROL, Absolute)),        // $2E    ROL $NNNN    Absolute
     None,                               // $2F
-    None,                               // $30    BMI $NN      Relative
+    Some(OpCode(BMI, Relative)),        // $30    BMI $NN      Relative
     Some(OpCode(AND, IndirectIndexed)), // $31    AND ($NN),Y  IndirectIndexed
     None,                               // $32
     None,                               // $33
@@ -1794,6 +1808,44 @@ mod test_instructions {
         cpu.flags.z = false;
         ram[0x8001] = 0x02_i8 as u8;
         OpCode(Instruction::BEQ, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8002);
+    }
+
+    #[test]
+    fn test_bpl() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8001;
+        cpu.flags.n = false;
+        ram[0x8001] = 0x02_i8 as u8;
+        OpCode(Instruction::BPL, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8004);
+
+        cpu.pc = 0x8001;
+        cpu.flags.n = true;
+        ram[0x8001] = 0x02_i8 as u8;
+        OpCode(Instruction::BPL, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8002);
+    }
+
+    #[test]
+    fn test_bmi() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8001;
+        cpu.flags.n = true;
+        ram[0x8001] = 0x02_i8 as u8;
+        OpCode(Instruction::BMI, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(cpu.pc, 0x8004);
+
+        cpu.pc = 0x8001;
+        cpu.flags.n = false;
+        ram[0x8001] = 0x02_i8 as u8;
+        OpCode(Instruction::BMI, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
