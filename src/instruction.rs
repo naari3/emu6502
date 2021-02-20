@@ -42,7 +42,7 @@ enum AddressingMode {
     AbsoluteY,
     Indirect,
     IndexedIndirect,
-    // IndirectIndexed,
+    IndirectIndexed,
 }
 
 impl AddressingMode {
@@ -88,6 +88,14 @@ impl AddressingMode {
                     + cpu.x as u16;
                 let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8);
+                Some(cpu.read_byte(cycles, ram, addr as usize))
+            }
+            IndirectIndexed => {
+                let ind_addr = cpu.fetch_byte(cycles, ram) as u16
+                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
+                let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
+                    + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8)
+                    + cpu.y as u16;
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             _ => panic!("You can't call fetch from {:?}!", self),
@@ -136,6 +144,14 @@ impl AddressingMode {
                     + cpu.x as u16;
                 let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8);
+                Some(addr)
+            }
+            IndirectIndexed => {
+                let ind_addr = cpu.fetch_byte(cycles, ram) as u16
+                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
+                let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
+                    + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8)
+                    + cpu.y as u16;
                 Some(addr)
             }
             _ => panic!("You can't call get_address from {:?}!", self),
@@ -396,7 +412,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(STX, Absolute)),        // $8E    STX $NNNN    Absolute
     None,                               // $8F
     None,                               // $90    BCC $NN      Relative
-    None,                               // $91    STA ($NN),Y  IndirectIndexed
+    Some(OpCode(STA, IndirectIndexed)), // $91    STA ($NN),Y  IndirectIndexed
     None,                               // $92
     None,                               // $93
     Some(OpCode(STY, ZeroPageX)),       // $94    STY $NN,X    Zero Page,X
@@ -428,7 +444,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     Some(OpCode(LDX, Absolute)),        // $AE    LDX $NNNN    Absolute
     None,                               // $AF
     None,                               // $B0    BCS $NN      Relative
-    None,                               // $B1    LDA ($NN),Y  IndirectIndexed
+    Some(OpCode(LDA, IndirectIndexed)), // $B1    LDA ($NN),Y  IndirectIndexed
     None,                               // $B2
     None,                               // $B3
     Some(OpCode(LDY, ZeroPageX)),       // $B4    LDY $NN,X    Zero Page,X
@@ -665,6 +681,32 @@ mod test_addressing_modes {
         let byte = AddressingMode::IndexedIndirect.get_address(&mut cpu, &mut cycles, &mut ram);
 
         assert_eq!(byte, Some(0x0304));
+    }
+
+    #[test]
+    fn test_indirect_indexed() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+        let mut cycles = 999;
+
+        cpu.pc = 0x8000;
+        cpu.y = 1;
+        ram[0x8000] = 0x02;
+        ram[0x8001] = 0x01;
+        ram[0x0102] = 0x04;
+        ram[0x0103] = 0x03;
+        let byte = AddressingMode::IndirectIndexed.get_address(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(byte, Some(0x0305));
+
+        cpu.pc = 0x8000;
+        cpu.y = 1;
+        ram[0x8000] = 0x02;
+        ram[0x8001] = 0x01;
+        ram[0x0102] = 0x04;
+        ram[0x0103] = 0x03;
+        ram[0x0305] = 0x42;
+        let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut cycles, &mut ram);
+        assert_eq!(byte, Some(0x42));
     }
 }
 
