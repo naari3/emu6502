@@ -113,11 +113,19 @@ impl AddressingMode {
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             AbsoluteX => {
+                let before_pc = cpu.pc;
                 let addr = self.get_address(cpu, cycles, ram).unwrap();
+                if before_pc & 0xFF00 != addr & 0xFF00 {
+                    *cycles -= 1;
+                }
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             AbsoluteY => {
+                let before_pc = cpu.pc;
                 let addr = self.get_address(cpu, cycles, ram).unwrap();
+                if before_pc & 0xFF00 != addr & 0xFF00 {
+                    *cycles -= 1;
+                }
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             IndexedIndirect => {
@@ -125,7 +133,13 @@ impl AddressingMode {
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             IndirectIndexed => {
-                let addr = self.get_address(cpu, cycles, ram).unwrap();
+                let ind_addr = cpu.fetch_byte(cycles, ram) as u16;
+                let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
+                    + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8)
+                    + cpu.y as u16;
+                if (addr - cpu.y as u16) & 0xFF00 != addr & 0xFF00 {
+                    *cycles -= 1;
+                }
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
             Implied => panic!("You can't call fetch from {:?}!", self),
@@ -153,23 +167,15 @@ impl AddressingMode {
                 Some(addr)
             }
             AbsoluteX => {
-                let before_pc = cpu.pc;
                 let addr = cpu.fetch_byte(cycles, ram) as u16
                     + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
                     + cpu.x as u16;
-                if before_pc & 0xFF00 != addr & 0xFF00 {
-                    *cycles -= 1;
-                }
                 Some(addr)
             }
             AbsoluteY => {
-                let before_pc = cpu.pc;
                 let addr = cpu.fetch_byte(cycles, ram) as u16
                     + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
                     + cpu.y as u16;
-                if before_pc & 0xFF00 != addr & 0xFF00 {
-                    *cycles -= 1;
-                }
                 Some(addr)
             }
             Indirect => {
@@ -191,9 +197,6 @@ impl AddressingMode {
                 let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8)
                     + cpu.y as u16;
-                if (addr - cpu.y as u16) & 0xFF00 != addr & 0xFF00 {
-                    *cycles -= 1;
-                }
                 Some(addr)
             }
             Accumulator => panic!("You can't call get_address from {:?}!", self),
