@@ -334,37 +334,44 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 let byte = cpu.read_byte(cycles, ram, addr as usize);
                 let byte = byte.wrapping_add(1);
+                *cycles -= 1;
                 cpu.set_zero_and_negative_flag(byte);
                 cpu.write_byte(cycles, ram, addr as usize, byte);
             }
             INX => {
                 let byte = cpu.x;
                 let byte = byte.wrapping_add(1);
+                *cycles -= 1;
                 cpu.set_index_x(byte);
             }
             INY => {
                 let byte = cpu.y;
                 let byte = byte.wrapping_add(1);
+                *cycles -= 1;
                 cpu.set_index_y(byte);
             }
             DEC => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 let byte = cpu.read_byte(cycles, ram, addr as usize);
                 let byte = byte.wrapping_sub(1);
+                *cycles -= 1;
                 cpu.set_zero_and_negative_flag(byte);
                 cpu.write_byte(cycles, ram, addr as usize, byte);
             }
             DEX => {
                 let byte = cpu.x;
                 let byte = byte.wrapping_sub(1);
+                *cycles -= 1;
                 cpu.set_index_x(byte);
             }
             DEY => {
                 let byte = cpu.y;
                 let byte = byte.wrapping_sub(1);
+                *cycles -= 1;
                 cpu.set_index_y(byte);
             }
             ASL => {
+                *cycles -= 1;
                 if let Accumulator = adr_mode {
                     let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
                     cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
@@ -380,6 +387,7 @@ impl OpCode {
                 }
             }
             LSR => {
+                *cycles -= 1;
                 if let Accumulator = adr_mode {
                     let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
                     cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
@@ -395,6 +403,7 @@ impl OpCode {
                 }
             }
             ROL => {
+                *cycles -= 1;
                 if let Accumulator = adr_mode {
                     let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
                     let new_first_byte = cpu.flags.c as u8;
@@ -412,6 +421,7 @@ impl OpCode {
                 }
             }
             ROR => {
+                *cycles -= 1;
                 if let Accumulator = adr_mode {
                     let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
                     let new_last_byte = (cpu.flags.c as u8) << 7;
@@ -429,10 +439,12 @@ impl OpCode {
                 }
             }
             JMP => {
+                *cycles -= 1;
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
             }
             JSR => {
+                *cycles += 1;
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 let pc = cpu.pc - 1;
                 cpu.push_to_stack(cycles, ram, (pc & 0xFF) as u8);
@@ -440,6 +452,7 @@ impl OpCode {
                 cpu.pc = addr;
             }
             RTS => {
+                *cycles -= 1;
                 let pc = ((cpu.pull_from_stack(cycles, ram) as u16) << 8)
                     + cpu.pull_from_stack(cycles, ram) as u16;
                 cpu.pc = pc + 1;
@@ -447,70 +460,109 @@ impl OpCode {
             BCC => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.c == false {
+                    *cycles -= 1;
+                    if cpu.pc & 0xFF00 != addr & 0xFF00 {
+                        *cycles -= 2;
+                    }
                     cpu.pc = addr;
                 }
             }
             BCS => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.c == true {
+                    *cycles -= 1;
+                    if cpu.pc & 0xFF00 != addr & 0xFF00 {
+                        *cycles -= 2;
+                    }
                     cpu.pc = addr;
                 }
             }
             BNE => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.z == false {
+                    *cycles -= 1;
+                    if cpu.pc & 0xFF00 != addr & 0xFF00 {
+                        *cycles -= 2;
+                    }
                     cpu.pc = addr;
                 }
             }
             BEQ => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.z == true {
+                    *cycles -= 1;
+                    if cpu.pc & 0xFF00 != addr & 0xFF00 {
+                        *cycles -= 2;
+                    }
                     cpu.pc = addr;
                 }
             }
             BPL => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.n == false {
+                    *cycles -= 1;
+                    if cpu.pc & 0xFF00 != addr & 0xFF00 {
+                        *cycles -= 2;
+                    }
                     cpu.pc = addr;
                 }
             }
             BMI => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.n == true {
+                    *cycles -= 1;
+                    if cpu.pc & 0xFF00 != addr & 0xFF00 {
+                        *cycles -= 2;
+                    }
                     cpu.pc = addr;
                 }
             }
             BVC => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.v == false {
+                    *cycles -= 1;
+                    if cpu.pc & 0xFF00 != addr & 0xFF00 {
+                        *cycles -= 2;
+                    }
                     cpu.pc = addr;
                 }
             }
             BVS => {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.v == true {
+                    *cycles -= 1;
+                    if cpu.pc & 0xFF00 != addr & 0xFF00 {
+                        *cycles -= 2;
+                    }
                     cpu.pc = addr;
                 }
             }
             CLC => {
+                *cycles -= 1;
                 cpu.flags.c = false;
             }
             CLD => {
+                *cycles -= 1;
                 cpu.flags.d = false;
             }
             CLI => {
+                *cycles -= 1;
                 cpu.flags.i = false;
             }
             CLV => {
+                *cycles -= 1;
                 cpu.flags.v = false;
             }
             SEC => {
+                *cycles -= 1;
                 cpu.flags.c = true;
             }
             SED => {
+                *cycles -= 1;
                 cpu.flags.d = true;
             }
             SEI => {
+                *cycles -= 1;
                 cpu.flags.i = true;
             }
             BRK => {
@@ -528,6 +580,7 @@ impl OpCode {
                 println!("nop");
             }
             RTI => {
+                *cycles += 1;
                 let flags = cpu.pull_from_stack(cycles, ram);
                 cpu.flags.set_as_u8(flags);
                 cpu.flags.b = false;
