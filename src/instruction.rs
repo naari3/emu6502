@@ -153,11 +153,11 @@ impl AddressingMode {
             ZeroPage => Some(cpu.fetch_byte(cycles, ram).into()),
             ZeroPageX => {
                 *cycles -= 1; // may be consumed by add x
-                Some((cpu.fetch_byte(cycles, ram) + cpu.x).into())
+                Some((cpu.fetch_byte(cycles, ram).wrapping_add(cpu.x)).into())
             }
             ZeroPageY => {
                 *cycles -= 1; // may be consumed by add y
-                Some((cpu.fetch_byte(cycles, ram) + cpu.y).into())
+                Some((cpu.fetch_byte(cycles, ram).wrapping_add(cpu.y)).into())
             }
             Relative => Some((((cpu.fetch_byte(cycles, ram) as i8) as i32) + cpu.pc as i32) as u16),
             Absolute => {
@@ -167,15 +167,15 @@ impl AddressingMode {
                 Some(addr)
             }
             AbsoluteX => {
-                let addr = cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
-                    + cpu.x as u16;
+                let addr = (cpu.fetch_byte(cycles, ram) as u16
+                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8))
+                    .wrapping_add(cpu.x as u16);
                 Some(addr)
             }
             AbsoluteY => {
-                let addr = cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8)
-                    + cpu.y as u16;
+                let addr = (cpu.fetch_byte(cycles, ram) as u16
+                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8))
+                    .wrapping_add(cpu.y as u16);
                 Some(addr)
             }
             Indirect => {
