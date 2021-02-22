@@ -1,5 +1,5 @@
 use crate::instruction::OPCODES;
-use crate::ram::RAM;
+use crate::ram::RAMBus;
 
 // http://www.obelisk.me.uk/6502/registers.html
 #[derive(Debug, Default)]
@@ -44,7 +44,7 @@ impl Default for StatusFlag {
 }
 
 impl CPU {
-    pub fn reset(&mut self, ram: &mut RAM) {
+    pub fn reset<T: RAMBus>(&mut self, ram: &mut T) {
         self.pc = 0xFFFC;
         self.sp = 0xFF;
         self.flags.c = false;
@@ -58,34 +58,39 @@ impl CPU {
         self.x = 0;
         self.y = 0;
 
+        self.remain_cycles = 0;
+        let addr_low = self.fetch_byte(ram);
+        let addr_high = self.fetch_byte(ram);
+        self.pc = ((addr_high as u16) << 8) + (addr_low as u16);
+
         ram.initialize();
     }
 
-    pub fn fetch_byte(&mut self, ram: &mut RAM) -> u8 {
+    pub fn fetch_byte<T: RAMBus>(&mut self, ram: &mut T) -> u8 {
         let byte = ram.read_byte(self.pc as usize);
         self.pc = self.pc.wrapping_add(1);
         self.remain_cycles += 1;
         byte
     }
 
-    pub fn read_byte(&mut self, ram: &mut RAM, addr: usize) -> u8 {
+    pub fn read_byte<T: RAMBus>(&mut self, ram: &mut T, addr: usize) -> u8 {
         let byte = ram.read_byte(addr);
         self.remain_cycles += 1;
         byte
     }
 
-    pub fn write_byte(&mut self, ram: &mut RAM, addr: usize, byte: u8) {
+    pub fn write_byte<T: RAMBus>(&mut self, ram: &mut T, addr: usize, byte: u8) {
         ram.write_byte(addr, byte);
         self.remain_cycles += 1;
     }
 
-    pub fn push_to_stack(&mut self, ram: &mut RAM, byte: u8) {
+    pub fn push_to_stack<T: RAMBus>(&mut self, ram: &mut T, byte: u8) {
         self.write_byte(ram, (0x0100 + self.sp as u16) as usize, byte);
         self.sp = self.sp.wrapping_sub(1);
         self.remain_cycles += 1;
     }
 
-    pub fn pull_from_stack(&mut self, ram: &mut RAM) -> u8 {
+    pub fn pull_from_stack<T: RAMBus>(&mut self, ram: &mut T) -> u8 {
         self.sp = self.sp.wrapping_add(1);
         let byte = self.read_byte(ram, (0x0100 + self.sp as u16) as usize);
         self.remain_cycles += 1;
@@ -112,18 +117,14 @@ impl CPU {
         self.set_zero_and_negative_flag(byte);
     }
 
-    pub fn execute(&mut self, mut cycles: isize, ram: &mut RAM) {
-        let addr_low = self.fetch_byte(ram);
-        let addr_high = self.fetch_byte(ram);
-        self.pc = ((addr_high as u16) << 8) + (addr_low as u16);
-        cycles -= 2;
+    pub fn execute<T: RAMBus>(&mut self, mut cycles: isize, ram: &mut T) {
         while cycles > 0 {
             self.step(ram);
             cycles -= 1;
         }
     }
 
-    pub fn step(&mut self, ram: &mut RAM) {
+    pub fn step<T: RAMBus>(&mut self, ram: &mut T) {
         if !self.is_waiting_for_cycles() {
             let op = self.fetch_byte(ram) as usize;
             if let Some(op) = &OPCODES[op] {
