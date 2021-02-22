@@ -61,38 +61,33 @@ impl CPU {
         ram.initialize();
     }
 
-    pub fn fetch_byte(&mut self, cycles: &mut isize, ram: &mut RAM) -> u8 {
+    pub fn fetch_byte(&mut self, ram: &mut RAM) -> u8 {
         let byte = ram.read_byte(self.pc as usize);
         self.pc = self.pc.wrapping_add(1);
-        *cycles -= 1;
         self.remain_cycles += 1;
         byte
     }
 
-    pub fn read_byte(&mut self, cycles: &mut isize, ram: &mut RAM, addr: usize) -> u8 {
+    pub fn read_byte(&mut self, ram: &mut RAM, addr: usize) -> u8 {
         let byte = ram.read_byte(addr);
-        *cycles -= 1;
         self.remain_cycles += 1;
         byte
     }
 
-    pub fn write_byte(&mut self, cycles: &mut isize, ram: &mut RAM, addr: usize, byte: u8) {
+    pub fn write_byte(&mut self, ram: &mut RAM, addr: usize, byte: u8) {
         ram.write_byte(addr, byte);
-        *cycles -= 1;
         self.remain_cycles += 1;
     }
 
-    pub fn push_to_stack(&mut self, cycles: &mut isize, ram: &mut RAM, byte: u8) {
-        self.write_byte(cycles, ram, (0x0100 + self.sp as u16) as usize, byte);
+    pub fn push_to_stack(&mut self, ram: &mut RAM, byte: u8) {
+        self.write_byte(ram, (0x0100 + self.sp as u16) as usize, byte);
         self.sp = self.sp.wrapping_sub(1);
-        *cycles -= 1;
         self.remain_cycles += 1;
     }
 
-    pub fn pull_from_stack(&mut self, cycles: &mut isize, ram: &mut RAM) -> u8 {
+    pub fn pull_from_stack(&mut self, ram: &mut RAM) -> u8 {
         self.sp = self.sp.wrapping_add(1);
-        let byte = self.read_byte(cycles, ram, (0x0100 + self.sp as u16) as usize);
-        *cycles -= 1;
+        let byte = self.read_byte(ram, (0x0100 + self.sp as u16) as usize);
         self.remain_cycles += 1;
         byte
     }
@@ -118,8 +113,8 @@ impl CPU {
     }
 
     pub fn execute(&mut self, mut cycles: isize, ram: &mut RAM) {
-        let addr_low = self.fetch_byte(&mut 0, ram);
-        let addr_high = self.fetch_byte(&mut 0, ram);
+        let addr_low = self.fetch_byte(ram);
+        let addr_high = self.fetch_byte(ram);
         self.pc = ((addr_high as u16) << 8) + (addr_low as u16);
         cycles -= 2;
         while cycles > 0 {
@@ -130,9 +125,9 @@ impl CPU {
 
     pub fn step(&mut self, ram: &mut RAM) {
         if !self.is_waiting_for_cycles() {
-            let op = self.fetch_byte(&mut 0, ram) as usize;
+            let op = self.fetch_byte(ram) as usize;
             if let Some(op) = &OPCODES[op] {
-                op.execute(self, &mut 0, ram);
+                op.execute(self, ram);
             } else {
                 panic!("{:#01x} is not implemented!", op);
             }

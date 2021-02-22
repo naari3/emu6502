@@ -92,58 +92,55 @@ enum AddressingMode {
 }
 
 impl AddressingMode {
-    fn fetch(&self, cpu: &mut CPU, cycles: &mut isize, ram: &mut RAM) -> Option<u8> {
+    fn fetch(&self, cpu: &mut CPU, ram: &mut RAM) -> Option<u8> {
         match self {
             Accumulator => Some(cpu.a),
-            Immediate => Some(cpu.fetch_byte(cycles, ram)),
+            Immediate => Some(cpu.fetch_byte(ram)),
             ZeroPage => {
-                let addr = self.get_address(cpu, cycles, ram).unwrap();
-                Some(cpu.read_byte(cycles, ram, addr as usize))
+                let addr = self.get_address(cpu, ram).unwrap();
+                Some(cpu.read_byte(ram, addr as usize))
             }
             ZeroPageX => {
-                let addr = self.get_address(cpu, cycles, ram).unwrap();
-                Some(cpu.read_byte(cycles, ram, addr as usize))
+                let addr = self.get_address(cpu, ram).unwrap();
+                Some(cpu.read_byte(ram, addr as usize))
             }
             ZeroPageY => {
-                let addr = self.get_address(cpu, cycles, ram).unwrap();
-                Some(cpu.read_byte(cycles, ram, addr as usize))
+                let addr = self.get_address(cpu, ram).unwrap();
+                Some(cpu.read_byte(ram, addr as usize))
             }
             Absolute => {
-                let addr = self.get_address(cpu, cycles, ram).unwrap();
-                Some(cpu.read_byte(cycles, ram, addr as usize))
+                let addr = self.get_address(cpu, ram).unwrap();
+                Some(cpu.read_byte(ram, addr as usize))
             }
             AbsoluteX => {
                 let before_pc = cpu.pc;
-                let addr = self.get_address(cpu, cycles, ram).unwrap();
+                let addr = self.get_address(cpu, ram).unwrap();
                 if before_pc & 0xFF00 != addr & 0xFF00 {
-                    *cycles -= 1;
                     cpu.remain_cycles += 1;
                 }
-                Some(cpu.read_byte(cycles, ram, addr as usize))
+                Some(cpu.read_byte(ram, addr as usize))
             }
             AbsoluteY => {
                 let before_pc = cpu.pc;
-                let addr = self.get_address(cpu, cycles, ram).unwrap();
+                let addr = self.get_address(cpu, ram).unwrap();
                 if before_pc & 0xFF00 != addr & 0xFF00 {
-                    *cycles -= 1;
                     cpu.remain_cycles += 1;
                 }
-                Some(cpu.read_byte(cycles, ram, addr as usize))
+                Some(cpu.read_byte(ram, addr as usize))
             }
             IndexedIndirect => {
-                let addr = self.get_address(cpu, cycles, ram).unwrap();
-                Some(cpu.read_byte(cycles, ram, addr as usize))
+                let addr = self.get_address(cpu, ram).unwrap();
+                Some(cpu.read_byte(ram, addr as usize))
             }
             IndirectIndexed => {
-                let ind_addr = cpu.fetch_byte(cycles, ram) as u16;
-                let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
-                    + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8)
+                let ind_addr = cpu.fetch_byte(ram) as u16;
+                let addr = cpu.read_byte(ram, ind_addr as usize) as u16
+                    + ((cpu.read_byte(ram, (ind_addr + 1) as usize) as u16) << 8)
                     + cpu.y as u16;
                 if (addr - cpu.y as u16) & 0xFF00 != addr & 0xFF00 {
-                    *cycles -= 1;
                     cpu.remain_cycles += 1;
                 }
-                Some(cpu.read_byte(cycles, ram, addr as usize))
+                Some(cpu.read_byte(ram, addr as usize))
             }
             Implied => panic!("You can't call fetch from {:?}!", self),
             Relative => panic!("You can't call fetch from {:?}!", self),
@@ -151,57 +148,50 @@ impl AddressingMode {
         }
     }
 
-    fn get_address(&self, cpu: &mut CPU, cycles: &mut isize, ram: &mut RAM) -> Option<u16> {
+    fn get_address(&self, cpu: &mut CPU, ram: &mut RAM) -> Option<u16> {
         match self {
-            ZeroPage => Some(cpu.fetch_byte(cycles, ram).into()),
+            ZeroPage => Some(cpu.fetch_byte(ram).into()),
             ZeroPageX => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1; // may be consumed by add x
-                Some((cpu.fetch_byte(cycles, ram).wrapping_add(cpu.x)).into())
+                Some((cpu.fetch_byte(ram).wrapping_add(cpu.x)).into())
             }
             ZeroPageY => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1; // may be consumed by add y
-                Some((cpu.fetch_byte(cycles, ram).wrapping_add(cpu.y)).into())
+                Some((cpu.fetch_byte(ram).wrapping_add(cpu.y)).into())
             }
-            Relative => Some((((cpu.fetch_byte(cycles, ram) as i8) as i32) + cpu.pc as i32) as u16),
+            Relative => Some((((cpu.fetch_byte(ram) as i8) as i32) + cpu.pc as i32) as u16),
             Absolute => {
-                let addr = cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
+                let addr = cpu.fetch_byte(ram) as u16 + ((cpu.fetch_byte(ram) as u16) << 8);
 
                 Some(addr)
             }
             AbsoluteX => {
-                let addr = (cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8))
+                let addr = (cpu.fetch_byte(ram) as u16 + ((cpu.fetch_byte(ram) as u16) << 8))
                     .wrapping_add(cpu.x as u16);
                 Some(addr)
             }
             AbsoluteY => {
-                let addr = (cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8))
+                let addr = (cpu.fetch_byte(ram) as u16 + ((cpu.fetch_byte(ram) as u16) << 8))
                     .wrapping_add(cpu.y as u16);
                 Some(addr)
             }
             Indirect => {
-                let ind_addr = cpu.fetch_byte(cycles, ram) as u16
-                    + ((cpu.fetch_byte(cycles, ram) as u16) << 8);
-                let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
-                    + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8);
+                let ind_addr = cpu.fetch_byte(ram) as u16 + ((cpu.fetch_byte(ram) as u16) << 8);
+                let addr = cpu.read_byte(ram, ind_addr as usize) as u16
+                    + ((cpu.read_byte(ram, (ind_addr + 1) as usize) as u16) << 8);
                 Some(addr)
             }
             IndexedIndirect => {
-                let ind_addr = cpu.fetch_byte(cycles, ram) as u16 + cpu.x as u16;
-                let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
-                    + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8);
-                *cycles -= 1;
+                let ind_addr = cpu.fetch_byte(ram) as u16 + cpu.x as u16;
+                let addr = cpu.read_byte(ram, ind_addr as usize) as u16
+                    + ((cpu.read_byte(ram, (ind_addr + 1) as usize) as u16) << 8);
                 cpu.remain_cycles += 1;
                 Some(addr)
             }
             IndirectIndexed => {
-                let ind_addr = cpu.fetch_byte(cycles, ram) as u16;
-                let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
-                    + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8)
+                let ind_addr = cpu.fetch_byte(ram) as u16;
+                let addr = cpu.read_byte(ram, ind_addr as usize) as u16
+                    + ((cpu.read_byte(ram, (ind_addr + 1) as usize) as u16) << 8)
                     + cpu.y as u16;
                 Some(addr)
             }
@@ -215,429 +205,381 @@ impl AddressingMode {
 pub struct OpCode(Instruction, AddressingMode);
 
 impl OpCode {
-    pub fn execute(&self, cpu: &mut CPU, cycles: &mut isize, ram: &mut RAM) {
+    pub fn execute(&self, cpu: &mut CPU, ram: &mut RAM) {
         let ins = &self.0;
         let adr_mode = &self.1;
         println!("instruction: {:?}", ins);
         println!("adr_mode:    {:?}", adr_mode);
         match ins {
             LDA => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.set_accumulator(byte);
             }
             LDX => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.set_index_x(byte);
             }
             LDY => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.set_index_y(byte);
             }
             STA => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
-                cpu.write_byte(cycles, ram, addr as usize, cpu.a);
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
+                cpu.write_byte(ram, addr as usize, cpu.a);
             }
             STX => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
-                cpu.write_byte(cycles, ram, addr as usize, cpu.x);
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
+                cpu.write_byte(ram, addr as usize, cpu.x);
             }
             STY => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
-                cpu.write_byte(cycles, ram, addr as usize, cpu.y);
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
+                cpu.write_byte(ram, addr as usize, cpu.y);
             }
             TAX => {
                 cpu.set_index_x(cpu.a);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
             }
             TAY => {
                 cpu.set_index_y(cpu.a);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
             }
             TXA => {
                 cpu.set_accumulator(cpu.x);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
             }
             TYA => {
                 cpu.set_accumulator(cpu.y);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
             }
             TSX => {
                 cpu.set_index_x(cpu.sp);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
             }
             TXS => {
                 cpu.sp = cpu.x;
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
             }
             PHA => {
-                cpu.push_to_stack(cycles, ram, cpu.a);
+                cpu.push_to_stack(ram, cpu.a);
             }
             PLA => {
-                let byte = cpu.pull_from_stack(cycles, ram);
+                let byte = cpu.pull_from_stack(ram);
                 cpu.set_accumulator(byte);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
             }
             PHP => {
                 let byte = cpu.flags.get_as_u8();
-                cpu.push_to_stack(cycles, ram, byte);
+                cpu.push_to_stack(ram, byte);
             }
             PLP => {
-                let byte = cpu.pull_from_stack(cycles, ram);
+                let byte = cpu.pull_from_stack(ram);
                 cpu.flags.set_as_u8(byte);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
             }
             AND => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.set_accumulator(cpu.a & byte);
             }
             EOR => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.set_accumulator(cpu.a ^ byte);
             }
             ORA => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.set_accumulator(cpu.a | byte);
             }
             BIT => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.flags.z = cpu.a & byte == 0;
                 cpu.flags.v = (byte >> 5 & 1) == 1;
                 cpu.flags.n = (byte >> 6 & 1) == 1;
             }
             ADC => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 let (byte, overflowing1) = cpu.a.overflowing_add(byte);
                 let (byte, overflowing2) = byte.overflowing_add(cpu.flags.c as u8);
                 cpu.flags.c = overflowing1 || overflowing2;
                 cpu.set_accumulator(byte);
             }
             SBC => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 let (byte, overflowing1) = cpu.a.overflowing_sub(byte);
                 let (byte, overflowing2) = byte.overflowing_sub(!cpu.flags.c as u8);
                 cpu.flags.c = !(overflowing1 || overflowing2);
                 cpu.set_accumulator(byte);
             }
             CMP => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.flags.c = cpu.a >= byte;
                 cpu.flags.z = cpu.a == byte;
                 cpu.flags.n = cpu.a.wrapping_sub(byte) >> 7 & 1 == 1;
             }
             CPX => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.flags.c = cpu.x >= byte;
                 cpu.flags.z = cpu.x == byte;
                 cpu.flags.n = cpu.x.wrapping_sub(byte) >> 7 & 1 == 1;
             }
             CPY => {
-                let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.flags.c = cpu.y >= byte;
                 cpu.flags.z = cpu.y == byte;
                 cpu.flags.n = cpu.y.wrapping_sub(byte) >> 7 & 1 == 1;
             }
             INC => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
-                let byte = cpu.read_byte(cycles, ram, addr as usize);
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
+                let byte = cpu.read_byte(ram, addr as usize);
                 let byte = byte.wrapping_add(1);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.set_zero_and_negative_flag(byte);
-                cpu.write_byte(cycles, ram, addr as usize, byte);
+                cpu.write_byte(ram, addr as usize, byte);
             }
             INX => {
                 let byte = cpu.x;
                 let byte = byte.wrapping_add(1);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.set_index_x(byte);
             }
             INY => {
                 let byte = cpu.y;
                 let byte = byte.wrapping_add(1);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.set_index_y(byte);
             }
             DEC => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
-                let byte = cpu.read_byte(cycles, ram, addr as usize);
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
+                let byte = cpu.read_byte(ram, addr as usize);
                 let byte = byte.wrapping_sub(1);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.set_zero_and_negative_flag(byte);
-                cpu.write_byte(cycles, ram, addr as usize, byte);
+                cpu.write_byte(ram, addr as usize, byte);
             }
             DEX => {
                 let byte = cpu.x;
                 let byte = byte.wrapping_sub(1);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.set_index_x(byte);
             }
             DEY => {
                 let byte = cpu.y;
                 let byte = byte.wrapping_sub(1);
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.set_index_y(byte);
             }
             ASL => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 if let Accumulator = adr_mode {
-                    let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                    let byte = adr_mode.fetch(cpu, ram).unwrap();
                     cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
                     let byte = byte << 1;
                     cpu.set_accumulator(byte);
                 } else {
-                    let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
-                    let byte = cpu.read_byte(cycles, ram, addr as usize);
+                    let addr = adr_mode.get_address(cpu, ram).unwrap();
+                    let byte = cpu.read_byte(ram, addr as usize);
                     cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
                     let byte = byte << 1;
                     cpu.set_zero_and_negative_flag(byte);
-                    cpu.write_byte(cycles, ram, addr as usize, byte);
+                    cpu.write_byte(ram, addr as usize, byte);
                 }
             }
             LSR => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 if let Accumulator = adr_mode {
-                    let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                    let byte = adr_mode.fetch(cpu, ram).unwrap();
                     cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
                     let byte = byte >> 1;
                     cpu.set_accumulator(byte);
                 } else {
-                    let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
-                    let byte = cpu.read_byte(cycles, ram, addr as usize);
+                    let addr = adr_mode.get_address(cpu, ram).unwrap();
+                    let byte = cpu.read_byte(ram, addr as usize);
                     cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
                     let byte = byte >> 1;
                     cpu.set_zero_and_negative_flag(byte);
-                    cpu.write_byte(cycles, ram, addr as usize, byte);
+                    cpu.write_byte(ram, addr as usize, byte);
                 }
             }
             ROL => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 if let Accumulator = adr_mode {
-                    let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                    let byte = adr_mode.fetch(cpu, ram).unwrap();
                     let new_first_byte = cpu.flags.c as u8;
                     cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
                     let byte = (byte << 1) | new_first_byte;
                     cpu.set_accumulator(byte);
                 } else {
-                    let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
-                    let byte = cpu.read_byte(cycles, ram, addr as usize);
+                    let addr = adr_mode.get_address(cpu, ram).unwrap();
+                    let byte = cpu.read_byte(ram, addr as usize);
                     let new_first_byte = cpu.flags.c as u8;
                     cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
                     let byte = (byte << 1) | new_first_byte;
                     cpu.set_zero_and_negative_flag(byte);
-                    cpu.write_byte(cycles, ram, addr as usize, byte);
+                    cpu.write_byte(ram, addr as usize, byte);
                 }
             }
             ROR => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 if let Accumulator = adr_mode {
-                    let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
+                    let byte = adr_mode.fetch(cpu, ram).unwrap();
                     let new_last_byte = (cpu.flags.c as u8) << 7;
                     cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
                     let byte = (byte >> 1) | new_last_byte;
                     cpu.set_accumulator(byte);
                 } else {
-                    let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
-                    let byte = cpu.read_byte(cycles, ram, addr as usize);
+                    let addr = adr_mode.get_address(cpu, ram).unwrap();
+                    let byte = cpu.read_byte(ram, addr as usize);
                     let new_last_byte = (cpu.flags.c as u8) << 7;
                     cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
                     let byte = (byte >> 1) | new_last_byte;
                     cpu.set_zero_and_negative_flag(byte);
-                    cpu.write_byte(cycles, ram, addr as usize, byte);
+                    cpu.write_byte(ram, addr as usize, byte);
                 }
             }
             JMP => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
                 cpu.pc = addr;
             }
             JSR => {
-                *cycles += 1;
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
                 let pc = cpu.pc - 1;
-                cpu.push_to_stack(cycles, ram, (pc & 0xFF) as u8);
-                cpu.push_to_stack(cycles, ram, (pc >> 8) as u8);
+                cpu.push_to_stack(ram, (pc & 0xFF) as u8);
+                cpu.push_to_stack(ram, (pc >> 8) as u8);
                 cpu.remain_cycles -= 1;
                 cpu.pc = addr;
             }
             RTS => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
-                let pc = ((cpu.pull_from_stack(cycles, ram) as u16) << 8)
-                    + cpu.pull_from_stack(cycles, ram) as u16;
+                let pc = ((cpu.pull_from_stack(ram) as u16) << 8) + cpu.pull_from_stack(ram) as u16;
                 cpu.pc = pc + 1;
             }
             BCC => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
                 if cpu.flags.c == false {
-                    *cycles -= 1;
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
-                        *cycles -= 2;
                         cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
             }
             BCS => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
                 if cpu.flags.c == true {
-                    *cycles -= 1;
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
-                        *cycles -= 2;
                         cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
             }
             BNE => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
                 if cpu.flags.z == false {
-                    *cycles -= 1;
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
-                        *cycles -= 2;
                         cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
             }
             BEQ => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
                 if cpu.flags.z == true {
-                    *cycles -= 1;
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
-                        *cycles -= 2;
                         cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
             }
             BPL => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
                 if cpu.flags.n == false {
-                    *cycles -= 1;
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
-                        *cycles -= 2;
                         cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
             }
             BMI => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
                 if cpu.flags.n == true {
-                    *cycles -= 1;
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
-                        *cycles -= 2;
                         cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
             }
             BVC => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
                 if cpu.flags.v == false {
-                    *cycles -= 1;
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
-                        *cycles -= 2;
                         cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
             }
             BVS => {
-                let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
                 if cpu.flags.v == true {
-                    *cycles -= 1;
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
-                        *cycles -= 2;
                         cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
             }
             CLC => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.flags.c = false;
             }
             CLD => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.flags.d = false;
             }
             CLI => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.flags.i = false;
             }
             CLV => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.flags.v = false;
             }
             SEC => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.flags.c = true;
             }
             SED => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.flags.d = true;
             }
             SEI => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 cpu.flags.i = true;
             }
             BRK => {
                 let pc = cpu.pc;
-                cpu.push_to_stack(cycles, ram, (pc & 0xFF) as u8);
-                cpu.push_to_stack(cycles, ram, (pc >> 8) as u8);
+                cpu.push_to_stack(ram, (pc & 0xFF) as u8);
+                cpu.push_to_stack(ram, (pc >> 8) as u8);
                 cpu.flags.b = true;
                 let flags = cpu.flags.get_as_u8();
-                cpu.push_to_stack(cycles, ram, flags);
+                cpu.push_to_stack(ram, flags);
                 cpu.flags.i = true;
                 cpu.pc = ram[0xFFFE] as u16 + (ram[0xFFFF] as u16) << 8;
             }
             NOP => {
-                *cycles -= 1;
                 cpu.remain_cycles += 1;
                 println!("nop");
             }
             RTI => {
-                *cycles += 1;
-                let flags = cpu.pull_from_stack(cycles, ram);
+                let flags = cpu.pull_from_stack(ram);
                 cpu.flags.set_as_u8(flags);
                 cpu.flags.b = false;
-                cpu.pc = ((cpu.pull_from_stack(cycles, ram) as u16)
-                    << 8 + cpu.pull_from_stack(cycles, ram) as u16)
-                    + 1;
+                cpu.pc =
+                    ((cpu.pull_from_stack(ram) as u16) << 8 + cpu.pull_from_stack(ram) as u16) + 1;
                 cpu.remain_cycles -= 1;
             }
         }
@@ -917,10 +859,9 @@ mod test_addressing_modes {
     fn test_accumulator() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.a = 0x42;
-        let byte = AddressingMode::Accumulator.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::Accumulator.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
     }
 
@@ -928,13 +869,11 @@ mod test_addressing_modes {
     fn test_immediate() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 1;
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0x42;
-        let byte = AddressingMode::Immediate.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::Immediate.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
-        assert_eq!(cycles, 0);
         assert_eq!(cpu.remain_cycles, 1);
     }
 
@@ -942,19 +881,16 @@ mod test_addressing_modes {
     fn test_zero_page() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 2;
 
         cpu.pc = 0x8000;
         ram[0x10] = 0x42;
         ram[0x8000] = 0x10;
-        let byte = AddressingMode::ZeroPage.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::ZeroPage.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
-        assert_eq!(cycles, 0);
         assert_eq!(cpu.remain_cycles, 2);
 
-        let mut cycles = 999;
         cpu.pc = 0x8000;
-        let addr = AddressingMode::ZeroPage.get_address(&mut cpu, &mut cycles, &mut ram);
+        let addr = AddressingMode::ZeroPage.get_address(&mut cpu, &mut ram);
         assert_eq!(addr, Some(0x10));
     }
 
@@ -962,19 +898,17 @@ mod test_addressing_modes {
     fn test_zero_page_x() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 3;
 
         cpu.pc = 0x8000;
         cpu.x = 2;
         ram[0x12] = 0x42;
         ram[0x8000] = 0x10;
-        let byte = AddressingMode::ZeroPageX.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::ZeroPageX.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
         assert_eq!(cpu.remain_cycles, 3);
 
-        let mut cycles = 999;
         cpu.pc = 0x8000;
-        let addr = AddressingMode::ZeroPageX.get_address(&mut cpu, &mut cycles, &mut ram);
+        let addr = AddressingMode::ZeroPageX.get_address(&mut cpu, &mut ram);
         assert_eq!(addr, Some(0x12));
     }
 
@@ -982,20 +916,17 @@ mod test_addressing_modes {
     fn test_zero_page_y() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 3;
 
         cpu.pc = 0x8000;
         cpu.y = 2;
         ram[0x12] = 0x42;
         ram[0x8000] = 0x10;
-        let byte = AddressingMode::ZeroPageY.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::ZeroPageY.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
-        assert_eq!(cycles, 0);
         assert_eq!(cpu.remain_cycles, 3);
 
-        let mut cycles = 999;
         cpu.pc = 0x8000;
-        let addr = AddressingMode::ZeroPageY.get_address(&mut cpu, &mut cycles, &mut ram);
+        let addr = AddressingMode::ZeroPageY.get_address(&mut cpu, &mut ram);
         assert_eq!(addr, Some(0x12));
     }
 
@@ -1003,11 +934,10 @@ mod test_addressing_modes {
     fn test_relative() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8001;
         ram[0x8001] = 0x02;
-        let addr = AddressingMode::Relative.get_address(&mut cpu, &mut cycles, &mut ram);
+        let addr = AddressingMode::Relative.get_address(&mut cpu, &mut ram);
         assert_eq!(addr, Some(0x8004));
     }
 
@@ -1015,20 +945,17 @@ mod test_addressing_modes {
     fn test_absolute() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 3;
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0x00;
         ram[0x8001] = 0x01;
         ram[0x0100] = 0x42;
-        let byte = AddressingMode::Absolute.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::Absolute.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
-        assert_eq!(cycles, 0);
         assert_eq!(cpu.remain_cycles, 3);
 
-        let mut cycles = 999;
         cpu.pc = 0x8000;
-        let addr = AddressingMode::Absolute.get_address(&mut cpu, &mut cycles, &mut ram);
+        let addr = AddressingMode::Absolute.get_address(&mut cpu, &mut ram);
         assert_eq!(addr, Some(0x0100));
     }
 
@@ -1036,42 +963,37 @@ mod test_addressing_modes {
     fn test_absolute_x() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.x = 1;
         ram[0x8000] = 0x00;
         ram[0x8001] = 0x01;
         ram[0x0101] = 0x42;
-        let byte = AddressingMode::AbsoluteX.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::AbsoluteX.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
 
         cpu.pc = 0x8000;
-        let addr = AddressingMode::AbsoluteX.get_address(&mut cpu, &mut cycles, &mut ram);
+        let addr = AddressingMode::AbsoluteX.get_address(&mut cpu, &mut ram);
         assert_eq!(addr, Some(0x0101));
 
-        let mut cycles = 3;
         cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         cpu.x = 1;
         ram[0x8000] = 0x50;
         ram[0x8001] = 0x80;
         ram[0x8051] = 0x42;
-        let addr = AddressingMode::AbsoluteX.fetch(&mut cpu, &mut cycles, &mut ram);
+        let addr = AddressingMode::AbsoluteX.fetch(&mut cpu, &mut ram);
         assert_eq!(addr, Some(0x42));
-        assert_eq!(cycles, 0);
         assert_eq!(cpu.remain_cycles, 3);
 
-        let mut cycles = 4;
         cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         cpu.x = 1;
         ram[0x8000] = 0x50;
         ram[0x8001] = 0x81;
         ram[0x8151] = 0x42;
-        let addr = AddressingMode::AbsoluteX.fetch(&mut cpu, &mut cycles, &mut ram);
+        let addr = AddressingMode::AbsoluteX.fetch(&mut cpu, &mut ram);
         assert_eq!(addr, Some(0x42));
-        assert_eq!(cycles, 0);
         assert_eq!(cpu.remain_cycles, 4);
     }
 
@@ -1079,40 +1001,35 @@ mod test_addressing_modes {
     fn test_absolute_y() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.y = 1;
         ram[0x8000] = 0x00;
         ram[0x8001] = 0x01;
         ram[0x0101] = 0x42;
-        let byte = AddressingMode::AbsoluteY.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::AbsoluteY.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
 
         cpu.pc = 0x8000;
-        let addr = AddressingMode::AbsoluteY.get_address(&mut cpu, &mut cycles, &mut ram);
+        let addr = AddressingMode::AbsoluteY.get_address(&mut cpu, &mut ram);
         assert_eq!(addr, Some(0x0101));
 
-        let mut cycles = 3;
         cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x50;
         ram[0x8001] = 0x80;
         ram[0x8051] = 0x42;
-        let addr = AddressingMode::AbsoluteY.fetch(&mut cpu, &mut cycles, &mut ram);
+        let addr = AddressingMode::AbsoluteY.fetch(&mut cpu, &mut ram);
         assert_eq!(addr, Some(0x42));
-        assert_eq!(cycles, 0);
         assert_eq!(cpu.remain_cycles, 3);
 
-        let mut cycles = 4;
         cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x50;
         ram[0x8001] = 0x81;
         ram[0x8151] = 0x42;
-        let addr = AddressingMode::AbsoluteY.fetch(&mut cpu, &mut cycles, &mut ram);
+        let addr = AddressingMode::AbsoluteY.fetch(&mut cpu, &mut ram);
         assert_eq!(addr, Some(0x42));
-        assert_eq!(cycles, 0);
         assert_eq!(cpu.remain_cycles, 4);
     }
 
@@ -1120,15 +1037,13 @@ mod test_addressing_modes {
     fn test_indirect() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0x02;
         ram[0x8001] = 0x01;
         ram[0x0102] = 0x04;
         ram[0x0103] = 0x03;
-        let byte = AddressingMode::Indirect.get_address(&mut cpu, &mut cycles, &mut ram);
-
+        let byte = AddressingMode::Indirect.get_address(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x0304));
     }
 
@@ -1136,17 +1051,15 @@ mod test_addressing_modes {
     fn test_indexed_indirect() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.x = 1;
         ram[0x8000] = 0x00;
         ram[0x01] = 0x04;
         ram[0x02] = 0x03;
-        let byte = AddressingMode::IndexedIndirect.get_address(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::IndexedIndirect.get_address(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x0304));
 
-        let mut cycles = 5;
         cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         cpu.x = 1;
@@ -1154,9 +1067,8 @@ mod test_addressing_modes {
         ram[0x01] = 0x04;
         ram[0x02] = 0x03;
         ram[0x0304] = 0x42;
-        let byte = AddressingMode::IndexedIndirect.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::IndexedIndirect.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
-        assert_eq!(cycles, 0);
         assert_eq!(cpu.remain_cycles, 5);
     }
 
@@ -1164,14 +1076,13 @@ mod test_addressing_modes {
     fn test_indirect_indexed() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.y = 1;
         ram[0x8000] = 0x01;
         ram[0x01] = 0x04;
         ram[0x02] = 0x03;
-        let byte = AddressingMode::IndirectIndexed.get_address(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::IndirectIndexed.get_address(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x0305));
 
         cpu.pc = 0x8000;
@@ -1180,10 +1091,9 @@ mod test_addressing_modes {
         ram[0x01] = 0x04;
         ram[0x02] = 0x03;
         ram[0x0305] = 0x42;
-        let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
 
-        let mut cycles = 4;
         cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         cpu.y = 1;
@@ -1191,12 +1101,10 @@ mod test_addressing_modes {
         ram[0x01] = 0x04;
         ram[0x02] = 0x03;
         ram[0x0305] = 0x42;
-        let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
-        assert_eq!(cycles, 0);
         assert_eq!(cpu.remain_cycles, 4);
 
-        let mut cycles = 5;
         cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         cpu.y = 0x10;
@@ -1204,9 +1112,8 @@ mod test_addressing_modes {
         ram[0x01] = 0xF4;
         ram[0x02] = 0x02;
         ram[0x0304] = 0x42;
-        let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut cycles, &mut ram);
+        let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut ram);
         assert_eq!(byte, Some(0x42));
-        assert_eq!(cycles, 0);
         assert_eq!(cpu.remain_cycles, 5);
     }
 }
@@ -1219,37 +1126,24 @@ mod test_instructions {
     fn test_lda() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0b10000010;
-        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b10000010);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0;
-        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 1;
-        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 1);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
@@ -1259,37 +1153,24 @@ mod test_instructions {
     fn test_ldx() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0b10000010;
-        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0b10000010);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0;
-        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 1;
-        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 1);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
@@ -1299,37 +1180,24 @@ mod test_instructions {
     fn test_ldy() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0b10000010;
-        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0b10000010);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0;
-        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 1;
-        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 1);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
@@ -1339,12 +1207,11 @@ mod test_instructions {
     fn test_sta() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.a = 0x42;
         ram[0x8000] = 0x0;
-        OpCode(Instruction::STA, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::STA, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x0], 0x42);
     }
 
@@ -1352,12 +1219,11 @@ mod test_instructions {
     fn test_stx() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.x = 0x42;
         ram[0x8000] = 0x0;
-        OpCode(Instruction::STX, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::STX, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x0], 0x42);
     }
 
@@ -1365,12 +1231,11 @@ mod test_instructions {
     fn test_sty() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.y = 0x42;
         ram[0x8000] = 0x0;
-        OpCode(Instruction::STY, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::STY, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x0], 0x42);
     }
 
@@ -1378,11 +1243,10 @@ mod test_instructions {
     fn test_tax() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.a = 0x42;
         cpu.x = 0;
-        OpCode(Instruction::TAX, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::TAX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0x42);
     }
 
@@ -1390,11 +1254,10 @@ mod test_instructions {
     fn test_tay() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.a = 0x42;
         cpu.y = 0;
-        OpCode(Instruction::TAY, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::TAY, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0x42);
     }
 
@@ -1402,11 +1265,10 @@ mod test_instructions {
     fn test_txa() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.x = 0x42;
         cpu.a = 0;
-        OpCode(Instruction::TXA, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::TXA, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0x42);
     }
 
@@ -1414,11 +1276,10 @@ mod test_instructions {
     fn test_tya() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.y = 0x42;
         cpu.a = 0;
-        OpCode(Instruction::TYA, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::TYA, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0x42);
     }
 
@@ -1426,11 +1287,10 @@ mod test_instructions {
     fn test_tsx() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.sp = 0x42;
         cpu.x = 0;
-        OpCode(Instruction::TSX, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::TSX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0x42);
     }
 
@@ -1438,11 +1298,10 @@ mod test_instructions {
     fn test_txs() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.x = 0x42;
         cpu.sp = 0;
-        OpCode(Instruction::TXS, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::TXS, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.sp, 0x42);
     }
 
@@ -1450,12 +1309,11 @@ mod test_instructions {
     fn test_pha() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.sp = 0xFF;
         cpu.pc = 0x8000;
         cpu.a = 0x42;
-        OpCode(Instruction::PHA, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::PHA, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.sp, 0xFE);
         assert_eq!(ram[0x1FF], 0x42);
     }
@@ -1464,13 +1322,12 @@ mod test_instructions {
     fn test_pla() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.sp = 0xFE;
         cpu.pc = 0x8000;
         cpu.a = 0;
         ram[0x1FF] = 0x42;
-        OpCode(Instruction::PLA, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::PLA, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.sp, 0xFF);
         assert_eq!(cpu.a, 0x42);
     }
@@ -1479,13 +1336,12 @@ mod test_instructions {
     fn test_php() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.sp = 0xFF;
         cpu.flags.c = true;
         cpu.flags.r = true;
 
-        OpCode(Instruction::PHP, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::PHP, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.sp, 0xFE);
         assert_eq!(ram[0x1FF], 0b00100001);
     }
@@ -1494,14 +1350,13 @@ mod test_instructions {
     fn test_plp() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.sp = 0xFE;
         cpu.flags.c = false;
         cpu.flags.r = false;
         ram[0x1FF] = 0b00100001;
 
-        OpCode(Instruction::PLP, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::PLP, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.sp, 0xFF);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.r, true);
@@ -1511,17 +1366,12 @@ mod test_instructions {
     fn test_and() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.a = 0b00011000;
         ram[0x8000] = 0b00001111;
 
-        OpCode(Instruction::AND, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::AND, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b00001000);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
@@ -1531,17 +1381,12 @@ mod test_instructions {
     fn test_eor() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.a = 0b00001111;
         ram[0x8000] = 0b00001000;
 
-        OpCode(Instruction::EOR, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::EOR, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b00000111);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
@@ -1551,17 +1396,12 @@ mod test_instructions {
     fn test_ora() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.a = 0b00001111;
         ram[0x8000] = 0b11110000;
 
-        OpCode(Instruction::ORA, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::ORA, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b11111111);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1571,14 +1411,13 @@ mod test_instructions {
     fn test_bit() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.a = 0;
         ram[0x1] = 0;
         ram[0x8000] = 0x1;
 
-        OpCode(Instruction::BIT, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BIT, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.v, false);
         assert_eq!(cpu.flags.n, false);
@@ -1588,7 +1427,7 @@ mod test_instructions {
         ram[0x1] = 0b01100000;
         ram[0x8000] = 0x1;
 
-        OpCode(Instruction::BIT, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BIT, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.v, true);
         assert_eq!(cpu.flags.n, true);
@@ -1598,17 +1437,12 @@ mod test_instructions {
     fn test_adc() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.a = 0x20;
         cpu.pc = 0x8000;
         cpu.flags.c = false;
         ram[0x8000] = 0x10;
-        OpCode(Instruction::ADC, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::ADC, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0x30);
         assert_eq!(cpu.flags.c, false);
 
@@ -1616,11 +1450,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         cpu.flags.c = true;
         ram[0x8000] = 1;
-        OpCode(Instruction::ADC, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::ADC, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 1);
         assert_eq!(cpu.flags.c, true);
     }
@@ -1629,17 +1459,12 @@ mod test_instructions {
     fn test_sbc() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.a = 0x30;
         cpu.pc = 0x8000;
         cpu.flags.c = true;
         ram[0x8000] = 0x10;
-        OpCode(Instruction::SBC, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::SBC, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0x20);
         assert_eq!(cpu.flags.c, true);
 
@@ -1647,11 +1472,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         cpu.flags.c = false;
         ram[0x8000] = 1;
-        OpCode(Instruction::SBC, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::SBC, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0xFE);
         assert_eq!(cpu.flags.c, false);
     }
@@ -1660,16 +1481,11 @@ mod test_instructions {
     fn test_cmp() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.a = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x10;
-        OpCode(Instruction::CMP, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::CMP, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1677,11 +1493,7 @@ mod test_instructions {
         cpu.a = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x20;
-        OpCode(Instruction::CMP, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::CMP, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, false);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1691,16 +1503,11 @@ mod test_instructions {
     fn test_cpx() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.x = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x10;
-        OpCode(Instruction::CPX, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::CPX, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1708,11 +1515,7 @@ mod test_instructions {
         cpu.x = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x20;
-        OpCode(Instruction::CPX, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::CPX, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, false);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1722,16 +1525,11 @@ mod test_instructions {
     fn test_cpy() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.y = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x10;
-        OpCode(Instruction::CPY, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::CPY, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1739,11 +1537,7 @@ mod test_instructions {
         cpu.y = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x20;
-        OpCode(Instruction::CPY, AddressingMode::Immediate).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::CPY, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, false);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1753,12 +1547,11 @@ mod test_instructions {
     fn test_inc() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0x00;
         ram[0x00] = 0xFE;
-        OpCode(Instruction::INC, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::INC, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x00], 0xFF);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1766,7 +1559,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         ram[0x8000] = 0x00;
         ram[0x00] = 0xFF;
-        OpCode(Instruction::INC, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::INC, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x00], 0x00);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1776,16 +1569,15 @@ mod test_instructions {
     fn test_inx() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.x = 0xFE;
-        OpCode(Instruction::INX, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::INX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0xFF);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
         cpu.x = 0xFF;
-        OpCode(Instruction::INX, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::INX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0x00);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1795,16 +1587,15 @@ mod test_instructions {
     fn test_iny() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.y = 0xFE;
-        OpCode(Instruction::INY, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::INY, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0xFF);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
         cpu.y = 0xFF;
-        OpCode(Instruction::INY, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::INY, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0x00);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1814,12 +1605,11 @@ mod test_instructions {
     fn test_dec() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0x00;
         ram[0x00] = 0x01;
-        OpCode(Instruction::DEC, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::DEC, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x00], 0x00);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1827,7 +1617,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         ram[0x8000] = 0x00;
         ram[0x00] = 0x00;
-        OpCode(Instruction::DEC, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::DEC, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x00], 0xFF);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1837,14 +1627,13 @@ mod test_instructions {
     fn test_dex() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.x = 0x01;
-        OpCode(Instruction::DEX, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::DEX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0x00);
 
         cpu.x = 0x00;
-        OpCode(Instruction::DEX, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::DEX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0xFF);
     }
 
@@ -1852,14 +1641,13 @@ mod test_instructions {
     fn test_dey() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.y = 0x01;
-        OpCode(Instruction::DEY, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::DEY, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0x00);
 
         cpu.y = 0x00;
-        OpCode(Instruction::DEY, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::DEY, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0xFF);
     }
 
@@ -1867,21 +1655,16 @@ mod test_instructions {
     fn test_asl() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.a = 0b10111111;
-        OpCode(Instruction::ASL, AddressingMode::Accumulator).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::ASL, AddressingMode::Accumulator).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b01111110);
         assert_eq!(cpu.flags.c, true);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0x01;
         ram[0x01] = 0b01000000;
-        OpCode(Instruction::ASL, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::ASL, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x01], 0b10000000);
         assert_eq!(cpu.flags.c, false);
     }
@@ -1890,21 +1673,16 @@ mod test_instructions {
     fn test_lsr() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.a = 0b11111101;
-        OpCode(Instruction::LSR, AddressingMode::Accumulator).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::LSR, AddressingMode::Accumulator).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b01111110);
         assert_eq!(cpu.flags.c, true);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0x01;
         ram[0x01] = 0b00000010;
-        OpCode(Instruction::LSR, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::LSR, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x01], 0b00000001);
         assert_eq!(cpu.flags.c, false);
     }
@@ -1913,15 +1691,10 @@ mod test_instructions {
     fn test_rol() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.a = 0b10111111;
         cpu.flags.c = true;
-        OpCode(Instruction::ROL, AddressingMode::Accumulator).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::ROL, AddressingMode::Accumulator).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b01111111);
         assert_eq!(cpu.flags.c, true);
 
@@ -1929,7 +1702,7 @@ mod test_instructions {
         cpu.flags.c = false;
         ram[0x8000] = 0x01;
         ram[0x01] = 0b01000000;
-        OpCode(Instruction::ROL, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::ROL, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x01], 0b10000000);
         assert_eq!(cpu.flags.c, false);
     }
@@ -1938,15 +1711,10 @@ mod test_instructions {
     fn test_ror() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.a = 0b11111101;
         cpu.flags.c = true;
-        OpCode(Instruction::ROR, AddressingMode::Accumulator).execute(
-            &mut cpu,
-            &mut cycles,
-            &mut ram,
-        );
+        OpCode(Instruction::ROR, AddressingMode::Accumulator).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b11111110);
         assert_eq!(cpu.flags.c, true);
 
@@ -1954,7 +1722,7 @@ mod test_instructions {
         cpu.flags.c = false;
         ram[0x8000] = 0x01;
         ram[0x01] = 0b00000010;
-        OpCode(Instruction::ROR, AddressingMode::ZeroPage).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::ROR, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x01], 0b00000001);
         assert_eq!(cpu.flags.c, false);
     }
@@ -1963,12 +1731,11 @@ mod test_instructions {
     fn test_jmp() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0x02;
         ram[0x8001] = 0x01;
-        OpCode(Instruction::JMP, AddressingMode::Absolute).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::JMP, AddressingMode::Absolute).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x0102);
 
         cpu.pc = 0x8000;
@@ -1976,7 +1743,7 @@ mod test_instructions {
         ram[0x8001] = 0x01;
         ram[0x0102] = 0x04;
         ram[0x0103] = 0x03;
-        OpCode(Instruction::JMP, AddressingMode::Indirect).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::JMP, AddressingMode::Indirect).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x0304);
     }
 
@@ -1984,13 +1751,12 @@ mod test_instructions {
     fn test_jsr() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8001;
         cpu.sp = 0xFF;
         ram[0x8001] = 0x02;
         ram[0x8002] = 0x01;
-        OpCode(Instruction::JSR, AddressingMode::Absolute).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::JSR, AddressingMode::Absolute).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x0102);
         assert_eq!(ram[0x01FF], 0x02);
         assert_eq!(ram[0x01FE], 0x80);
@@ -2000,13 +1766,12 @@ mod test_instructions {
     fn test_rts() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.sp = 0xFD;
         ram[0x01FE] = 0x01;
         ram[0x01FF] = 0x02;
-        OpCode(Instruction::RTS, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::RTS, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x0103);
     }
 
@@ -2014,18 +1779,17 @@ mod test_instructions {
     fn test_bcc() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8001;
         cpu.flags.c = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BCC, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BCC, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.c = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BCC, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BCC, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2033,18 +1797,17 @@ mod test_instructions {
     fn test_bcs() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8001;
         cpu.flags.c = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BCS, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BCS, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.c = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BCS, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BCS, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2052,18 +1815,17 @@ mod test_instructions {
     fn test_bne() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8001;
         cpu.flags.z = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BNE, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BNE, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.z = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BNE, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BNE, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2071,18 +1833,17 @@ mod test_instructions {
     fn test_beq() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8001;
         cpu.flags.z = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BEQ, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BEQ, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.z = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BEQ, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BEQ, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2090,18 +1851,17 @@ mod test_instructions {
     fn test_bpl() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8001;
         cpu.flags.n = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BPL, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BPL, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.n = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BPL, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BPL, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2109,18 +1869,17 @@ mod test_instructions {
     fn test_bmi() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8001;
         cpu.flags.n = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BMI, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BMI, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.n = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BMI, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BMI, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2128,18 +1887,17 @@ mod test_instructions {
     fn test_bvc() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8001;
         cpu.flags.v = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BVC, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BVC, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.v = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BVC, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BVC, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2147,18 +1905,17 @@ mod test_instructions {
     fn test_bvs() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8001;
         cpu.flags.v = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BVS, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BVS, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.v = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BVS, AddressingMode::Relative).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BVS, AddressingMode::Relative).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2166,10 +1923,9 @@ mod test_instructions {
     fn test_clc() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.flags.c = true;
-        OpCode(Instruction::CLC, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::CLC, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, false);
     }
 
@@ -2177,10 +1933,9 @@ mod test_instructions {
     fn test_cld() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.flags.d = true;
-        OpCode(Instruction::CLD, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::CLD, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.d, false);
     }
 
@@ -2188,10 +1943,9 @@ mod test_instructions {
     fn test_cli() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.flags.i = true;
-        OpCode(Instruction::CLI, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::CLI, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.i, false);
     }
 
@@ -2199,10 +1953,9 @@ mod test_instructions {
     fn test_clv() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.flags.v = true;
-        OpCode(Instruction::CLV, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::CLV, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.v, false);
     }
 
@@ -2210,10 +1963,9 @@ mod test_instructions {
     fn test_sec() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.flags.c = false;
-        OpCode(Instruction::SEC, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::SEC, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, true);
     }
 
@@ -2221,10 +1973,9 @@ mod test_instructions {
     fn test_sed() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.flags.d = false;
-        OpCode(Instruction::SED, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::SED, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.d, true);
     }
 
@@ -2232,10 +1983,9 @@ mod test_instructions {
     fn test_sei() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.flags.i = false;
-        OpCode(Instruction::SEI, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::SEI, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.i, true);
     }
 
@@ -2243,11 +1993,10 @@ mod test_instructions {
     fn test_brk() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.sp = 0xFF;
-        OpCode(Instruction::BRK, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::BRK, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x01FF], 0x00);
         assert_eq!(ram[0x01FE], 0x80);
         assert_eq!(ram[0x01FD], 0b00110000);
@@ -2258,7 +2007,6 @@ mod test_instructions {
     fn test_rti() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
         cpu.pc = 0x8000;
         cpu.sp = 0xFC;
@@ -2266,7 +2014,7 @@ mod test_instructions {
         ram[0x01FD] = 0b00110001;
         ram[0x01FE] = 0x90;
         ram[0x01FF] = 0x00;
-        OpCode(Instruction::RTI, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::RTI, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.i, false);
         assert_eq!(cpu.flags.b, false);
@@ -2277,8 +2025,7 @@ mod test_instructions {
     fn test_nop() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        let mut cycles = 999;
 
-        OpCode(Instruction::NOP, AddressingMode::Implied).execute(&mut cpu, &mut cycles, &mut ram);
+        OpCode(Instruction::NOP, AddressingMode::Implied).execute(&mut cpu, &mut ram);
     }
 }
