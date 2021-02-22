@@ -12,6 +12,8 @@ pub struct CPU {
     pub y: u8, // Index Register Y
 
     pub flags: StatusFlag, // Processor Status
+
+    pub remain_cycles: usize,
 }
 
 #[derive(Debug, PartialEq, Eq)]
