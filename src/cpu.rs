@@ -65,30 +65,35 @@ impl CPU {
         let byte = ram.read_byte(self.pc as usize);
         self.pc = self.pc.wrapping_add(1);
         *cycles -= 1;
+        self.remain_cycles += 1;
         byte
     }
 
     pub fn read_byte(&mut self, cycles: &mut isize, ram: &mut RAM, addr: usize) -> u8 {
         let byte = ram.read_byte(addr);
         *cycles -= 1;
+        self.remain_cycles += 1;
         byte
     }
 
     pub fn write_byte(&mut self, cycles: &mut isize, ram: &mut RAM, addr: usize, byte: u8) {
         ram.write_byte(addr, byte);
         *cycles -= 1;
+        self.remain_cycles += 1;
     }
 
     pub fn push_to_stack(&mut self, cycles: &mut isize, ram: &mut RAM, byte: u8) {
         self.write_byte(cycles, ram, (0x0100 + self.sp as u16) as usize, byte);
         self.sp = self.sp.wrapping_sub(1);
         *cycles -= 1;
+        self.remain_cycles += 1;
     }
 
     pub fn pull_from_stack(&mut self, cycles: &mut isize, ram: &mut RAM) -> u8 {
         self.sp = self.sp.wrapping_add(1);
         let byte = self.read_byte(cycles, ram, (0x0100 + self.sp as u16) as usize);
         *cycles -= 1;
+        self.remain_cycles += 1;
         byte
     }
 

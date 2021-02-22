@@ -117,6 +117,7 @@ impl AddressingMode {
                 let addr = self.get_address(cpu, cycles, ram).unwrap();
                 if before_pc & 0xFF00 != addr & 0xFF00 {
                     *cycles -= 1;
+                    cpu.remain_cycles += 1;
                 }
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
@@ -125,6 +126,7 @@ impl AddressingMode {
                 let addr = self.get_address(cpu, cycles, ram).unwrap();
                 if before_pc & 0xFF00 != addr & 0xFF00 {
                     *cycles -= 1;
+                    cpu.remain_cycles += 1;
                 }
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
@@ -139,6 +141,7 @@ impl AddressingMode {
                     + cpu.y as u16;
                 if (addr - cpu.y as u16) & 0xFF00 != addr & 0xFF00 {
                     *cycles -= 1;
+                    cpu.remain_cycles += 1;
                 }
                 Some(cpu.read_byte(cycles, ram, addr as usize))
             }
@@ -152,11 +155,13 @@ impl AddressingMode {
         match self {
             ZeroPage => Some(cpu.fetch_byte(cycles, ram).into()),
             ZeroPageX => {
-                *cycles -= 1; // may be consumed by add x
+                *cycles -= 1;
+                cpu.remain_cycles += 1; // may be consumed by add x
                 Some((cpu.fetch_byte(cycles, ram).wrapping_add(cpu.x)).into())
             }
             ZeroPageY => {
-                *cycles -= 1; // may be consumed by add y
+                *cycles -= 1;
+                cpu.remain_cycles += 1; // may be consumed by add y
                 Some((cpu.fetch_byte(cycles, ram).wrapping_add(cpu.y)).into())
             }
             Relative => Some((((cpu.fetch_byte(cycles, ram) as i8) as i32) + cpu.pc as i32) as u16),
@@ -190,6 +195,7 @@ impl AddressingMode {
                 let addr = cpu.read_byte(cycles, ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(cycles, ram, (ind_addr + 1) as usize) as u16) << 8);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 Some(addr)
             }
             IndirectIndexed => {
@@ -242,26 +248,32 @@ impl OpCode {
             TAX => {
                 cpu.set_index_x(cpu.a);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
             }
             TAY => {
                 cpu.set_index_y(cpu.a);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
             }
             TXA => {
                 cpu.set_accumulator(cpu.x);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
             }
             TYA => {
                 cpu.set_accumulator(cpu.y);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
             }
             TSX => {
                 cpu.set_index_x(cpu.sp);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
             }
             TXS => {
                 cpu.sp = cpu.x;
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
             }
             PHA => {
                 cpu.push_to_stack(cycles, ram, cpu.a);
@@ -270,6 +282,7 @@ impl OpCode {
                 let byte = cpu.pull_from_stack(cycles, ram);
                 cpu.set_accumulator(byte);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
             }
             PHP => {
                 let byte = cpu.flags.get_as_u8();
@@ -279,6 +292,7 @@ impl OpCode {
                 let byte = cpu.pull_from_stack(cycles, ram);
                 cpu.flags.set_as_u8(byte);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
             }
             AND => {
                 let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
@@ -335,6 +349,7 @@ impl OpCode {
                 let byte = cpu.read_byte(cycles, ram, addr as usize);
                 let byte = byte.wrapping_add(1);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.set_zero_and_negative_flag(byte);
                 cpu.write_byte(cycles, ram, addr as usize, byte);
             }
@@ -342,12 +357,14 @@ impl OpCode {
                 let byte = cpu.x;
                 let byte = byte.wrapping_add(1);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.set_index_x(byte);
             }
             INY => {
                 let byte = cpu.y;
                 let byte = byte.wrapping_add(1);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.set_index_y(byte);
             }
             DEC => {
@@ -355,6 +372,7 @@ impl OpCode {
                 let byte = cpu.read_byte(cycles, ram, addr as usize);
                 let byte = byte.wrapping_sub(1);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.set_zero_and_negative_flag(byte);
                 cpu.write_byte(cycles, ram, addr as usize, byte);
             }
@@ -362,16 +380,19 @@ impl OpCode {
                 let byte = cpu.x;
                 let byte = byte.wrapping_sub(1);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.set_index_x(byte);
             }
             DEY => {
                 let byte = cpu.y;
                 let byte = byte.wrapping_sub(1);
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.set_index_y(byte);
             }
             ASL => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 if let Accumulator = adr_mode {
                     let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
                     cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
@@ -388,6 +409,7 @@ impl OpCode {
             }
             LSR => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 if let Accumulator = adr_mode {
                     let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
                     cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
@@ -404,6 +426,7 @@ impl OpCode {
             }
             ROL => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 if let Accumulator = adr_mode {
                     let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
                     let new_first_byte = cpu.flags.c as u8;
@@ -422,6 +445,7 @@ impl OpCode {
             }
             ROR => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 if let Accumulator = adr_mode {
                     let byte = adr_mode.fetch(cpu, cycles, ram).unwrap();
                     let new_last_byte = (cpu.flags.c as u8) << 7;
@@ -440,6 +464,7 @@ impl OpCode {
             }
             JMP => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 cpu.pc = addr;
             }
@@ -449,10 +474,12 @@ impl OpCode {
                 let pc = cpu.pc - 1;
                 cpu.push_to_stack(cycles, ram, (pc & 0xFF) as u8);
                 cpu.push_to_stack(cycles, ram, (pc >> 8) as u8);
+                cpu.remain_cycles -= 1;
                 cpu.pc = addr;
             }
             RTS => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 let pc = ((cpu.pull_from_stack(cycles, ram) as u16) << 8)
                     + cpu.pull_from_stack(cycles, ram) as u16;
                 cpu.pc = pc + 1;
@@ -461,8 +488,10 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.c == false {
                     *cycles -= 1;
+                    cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
                         *cycles -= 2;
+                        cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
@@ -471,8 +500,10 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.c == true {
                     *cycles -= 1;
+                    cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
                         *cycles -= 2;
+                        cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
@@ -481,8 +512,10 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.z == false {
                     *cycles -= 1;
+                    cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
                         *cycles -= 2;
+                        cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
@@ -491,8 +524,10 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.z == true {
                     *cycles -= 1;
+                    cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
                         *cycles -= 2;
+                        cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
@@ -501,8 +536,10 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.n == false {
                     *cycles -= 1;
+                    cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
                         *cycles -= 2;
+                        cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
@@ -511,8 +548,10 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.n == true {
                     *cycles -= 1;
+                    cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
                         *cycles -= 2;
+                        cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
@@ -521,8 +560,10 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.v == false {
                     *cycles -= 1;
+                    cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
                         *cycles -= 2;
+                        cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
@@ -531,38 +572,47 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, cycles, ram).unwrap();
                 if cpu.flags.v == true {
                     *cycles -= 1;
+                    cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
                         *cycles -= 2;
+                        cpu.remain_cycles += 2;
                     }
                     cpu.pc = addr;
                 }
             }
             CLC => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.flags.c = false;
             }
             CLD => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.flags.d = false;
             }
             CLI => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.flags.i = false;
             }
             CLV => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.flags.v = false;
             }
             SEC => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.flags.c = true;
             }
             SED => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.flags.d = true;
             }
             SEI => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 cpu.flags.i = true;
             }
             BRK => {
@@ -577,6 +627,7 @@ impl OpCode {
             }
             NOP => {
                 *cycles -= 1;
+                cpu.remain_cycles += 1;
                 println!("nop");
             }
             RTI => {
@@ -587,10 +638,15 @@ impl OpCode {
                 cpu.pc = ((cpu.pull_from_stack(cycles, ram) as u16)
                     << 8 + cpu.pull_from_stack(cycles, ram) as u16)
                     + 1;
+                cpu.remain_cycles -= 1;
             }
         }
     }
 }
+
+// LDA #$01
+// LDA $01 => $0001
+// LDA $0101
 
 use AddressingMode::*;
 use Instruction::*;
@@ -879,6 +935,7 @@ mod test_addressing_modes {
         let byte = AddressingMode::Immediate.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x42));
         assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 1);
     }
 
     #[test]
@@ -893,6 +950,7 @@ mod test_addressing_modes {
         let byte = AddressingMode::ZeroPage.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x42));
         assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 2);
 
         let mut cycles = 999;
         cpu.pc = 0x8000;
@@ -912,7 +970,7 @@ mod test_addressing_modes {
         ram[0x8000] = 0x10;
         let byte = AddressingMode::ZeroPageX.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x42));
-        assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 3);
 
         let mut cycles = 999;
         cpu.pc = 0x8000;
@@ -933,6 +991,7 @@ mod test_addressing_modes {
         let byte = AddressingMode::ZeroPageY.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x42));
         assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 3);
 
         let mut cycles = 999;
         cpu.pc = 0x8000;
@@ -965,6 +1024,7 @@ mod test_addressing_modes {
         let byte = AddressingMode::Absolute.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x42));
         assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 3);
 
         let mut cycles = 999;
         cpu.pc = 0x8000;
@@ -991,6 +1051,7 @@ mod test_addressing_modes {
         assert_eq!(addr, Some(0x0101));
 
         let mut cycles = 3;
+        cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         cpu.x = 1;
         ram[0x8000] = 0x50;
@@ -999,8 +1060,10 @@ mod test_addressing_modes {
         let addr = AddressingMode::AbsoluteX.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(addr, Some(0x42));
         assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 3);
 
         let mut cycles = 4;
+        cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         cpu.x = 1;
         ram[0x8000] = 0x50;
@@ -1009,6 +1072,7 @@ mod test_addressing_modes {
         let addr = AddressingMode::AbsoluteX.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(addr, Some(0x42));
         assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 4);
     }
 
     #[test]
@@ -1030,6 +1094,7 @@ mod test_addressing_modes {
         assert_eq!(addr, Some(0x0101));
 
         let mut cycles = 3;
+        cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x50;
         ram[0x8001] = 0x80;
@@ -1037,8 +1102,10 @@ mod test_addressing_modes {
         let addr = AddressingMode::AbsoluteY.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(addr, Some(0x42));
         assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 3);
 
         let mut cycles = 4;
+        cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x50;
         ram[0x8001] = 0x81;
@@ -1046,6 +1113,7 @@ mod test_addressing_modes {
         let addr = AddressingMode::AbsoluteY.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(addr, Some(0x42));
         assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 4);
     }
 
     #[test]
@@ -1079,6 +1147,7 @@ mod test_addressing_modes {
         assert_eq!(byte, Some(0x0304));
 
         let mut cycles = 5;
+        cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         cpu.x = 1;
         ram[0x8000] = 0x00;
@@ -1088,6 +1157,7 @@ mod test_addressing_modes {
         let byte = AddressingMode::IndexedIndirect.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x42));
         assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 5);
     }
 
     #[test]
@@ -1114,6 +1184,7 @@ mod test_addressing_modes {
         assert_eq!(byte, Some(0x42));
 
         let mut cycles = 4;
+        cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         cpu.y = 1;
         ram[0x8000] = 0x01;
@@ -1123,8 +1194,10 @@ mod test_addressing_modes {
         let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x42));
         assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 4);
 
         let mut cycles = 5;
+        cpu.remain_cycles = 0;
         cpu.pc = 0x8000;
         cpu.y = 0x10;
         ram[0x8000] = 0x01;
@@ -1134,6 +1207,7 @@ mod test_addressing_modes {
         let byte = AddressingMode::IndirectIndexed.fetch(&mut cpu, &mut cycles, &mut ram);
         assert_eq!(byte, Some(0x42));
         assert_eq!(cycles, 0);
+        assert_eq!(cpu.remain_cycles, 5);
     }
 }
 
