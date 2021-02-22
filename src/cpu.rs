@@ -118,17 +118,30 @@ impl CPU {
     }
 
     pub fn execute(&mut self, mut cycles: isize, ram: &mut RAM) {
-        let addr_low = self.fetch_byte(&mut cycles, ram);
-        let addr_high = self.fetch_byte(&mut cycles, ram);
+        let addr_low = self.fetch_byte(&mut 0, ram);
+        let addr_high = self.fetch_byte(&mut 0, ram);
         self.pc = ((addr_high as u16) << 8) + (addr_low as u16);
+        cycles -= 2;
         while cycles > 0 {
-            let op = self.fetch_byte(&mut cycles, ram) as usize;
+            self.step(ram);
+            cycles -= 1;
+        }
+    }
+
+    pub fn step(&mut self, ram: &mut RAM) {
+        if !self.is_waiting_for_cycles() {
+            let op = self.fetch_byte(&mut 0, ram) as usize;
             if let Some(op) = &OPCODES[op] {
-                op.execute(self, &mut cycles, ram);
+                op.execute(self, &mut 0, ram);
             } else {
                 panic!("{:#01x} is not implemented!", op);
             }
         }
+        self.remain_cycles -= 1;
+    }
+
+    fn is_waiting_for_cycles(&self) -> bool {
+        self.remain_cycles > 0
     }
 }
 
