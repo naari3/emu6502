@@ -91,7 +91,7 @@ mod tests {
         ram[0xFFFC] = 0x00;
         ram[0xFFFD] = 0x80;
 
-        let cycles = 82;
+        let cycles = 93;
         cpu.execute(cycles, &mut ram);
         assert_eq!(cpu.a, 0x0D);
     }
