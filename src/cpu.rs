@@ -3,7 +3,7 @@ use crate::ram::MemIO;
 use crate::reset::Reset;
 
 // http://www.obelisk.me.uk/6502/registers.html
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct CPU {
     pub pc: u16, // Program Counter
     pub sp: u8,  // Stack Pointer, it uses as lower byte on "0x01XX".
@@ -17,7 +17,7 @@ pub struct CPU {
     pub remain_cycles: usize,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct StatusFlag {
     pub c: bool, // Carry Flag
     pub z: bool, // Zero Flag

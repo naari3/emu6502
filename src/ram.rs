@@ -8,6 +8,7 @@ pub trait MemIO {
 }
 
 const MAX_MEMORY: usize = 0x100 * 0x100;
+#[derive(Debug, Clone, Copy)]
 pub struct RAM {
     inner: [u8; MAX_MEMORY],
 }
