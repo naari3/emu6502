@@ -32,7 +32,6 @@ mod tests {
     fn test_case1() {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        cpu.reset(&mut ram);
         ram.write_rom(
             0x8000,
             &[
@@ -60,7 +59,6 @@ mod tests {
         // https://gist.github.com/pedrofranceschi/1285964
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        cpu.reset(&mut ram);
         let to_loop = -11_i8 as u8;
         ram.write_rom(
             0x8000,
@@ -102,7 +100,6 @@ mod tests {
         // https://gist.github.com/pedrofranceschi/1285964
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
-        cpu.reset(&mut ram);
         /*
         ROUTINE:
             LDA #$42

@@ -45,7 +45,7 @@ impl Default for StatusFlag {
 }
 
 impl CPU {
-    pub fn reset<T: Reset>(&mut self, ram: &mut T) {
+    pub fn reset<T: Reset + MemIO>(&mut self, ram: &mut T) {
         self.pc = 0xFFFC;
         self.sp = 0xFF;
         self.flags.c = false;
@@ -58,6 +58,10 @@ impl CPU {
         self.a = 0;
         self.x = 0;
         self.y = 0;
+
+        let addr_low = self.fetch_byte(ram);
+        let addr_high = self.fetch_byte(ram);
+        self.pc = ((addr_high as u16) << 8) + (addr_low as u16);
 
         ram.reset();
     }
@@ -113,10 +117,8 @@ impl CPU {
         self.set_zero_and_negative_flag(byte);
     }
 
-    pub fn execute<T: MemIO>(&mut self, mut cycles: isize, ram: &mut T) {
-        let addr_low = self.fetch_byte(ram);
-        let addr_high = self.fetch_byte(ram);
-        self.pc = ((addr_high as u16) << 8) + (addr_low as u16);
+    pub fn execute<T: Reset + MemIO>(&mut self, mut cycles: isize, ram: &mut T) {
+        self.reset(ram);
         cycles -= 2;
         while cycles > 0 {
             self.step(ram);
