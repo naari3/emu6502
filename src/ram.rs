@@ -8,9 +8,9 @@ pub trait MemIO {
 }
 
 const MAX_MEMORY: usize = 0x100 * 0x100;
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct RAM {
-    inner: [u8; MAX_MEMORY],
+    inner: Vec<u8>,
 }
 
 impl Index<usize> for RAM {
@@ -29,12 +29,17 @@ impl IndexMut<usize> for RAM {
 impl Default for RAM {
     fn default() -> Self {
         RAM {
-            inner: [0; MAX_MEMORY],
+            inner: vec![0; MAX_MEMORY],
         }
     }
 }
 
 impl RAM {
+    #[allow(dead_code)]
+    pub fn new(buf: Vec<u8>) -> Self {
+        Self { inner: buf }
+    }
+
     #[allow(dead_code)]
     pub fn write_rom(&mut self, start_address: usize, data: &[u8]) {
         self.inner[start_address..(start_address + data.len())].clone_from_slice(data);
