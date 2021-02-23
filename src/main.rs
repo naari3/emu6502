@@ -1,6 +1,7 @@
 mod cpu;
 mod instruction;
 mod ram;
+mod reset;
 
 use cpu::CPU;
 use ram::RAM;

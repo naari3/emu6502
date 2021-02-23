@@ -1,7 +1,7 @@
 use std::usize;
 
 use crate::cpu::CPU;
-use crate::ram::RAM;
+use crate::ram::MemIO;
 
 #[derive(Debug)]
 enum Instruction {
@@ -92,7 +92,7 @@ enum AddressingMode {
 }
 
 impl AddressingMode {
-    fn fetch(&self, cpu: &mut CPU, ram: &mut RAM) -> Option<u8> {
+    fn fetch<T: MemIO>(&self, cpu: &mut CPU, ram: &mut T) -> Option<u8> {
         match self {
             Accumulator => Some(cpu.a),
             Immediate => Some(cpu.fetch_byte(ram)),
@@ -148,7 +148,7 @@ impl AddressingMode {
         }
     }
 
-    fn get_address(&self, cpu: &mut CPU, ram: &mut RAM) -> Option<u16> {
+    fn get_address<T: MemIO>(&self, cpu: &mut CPU, ram: &mut T) -> Option<u16> {
         match self {
             ZeroPage => Some(cpu.fetch_byte(ram).into()),
             ZeroPageX => {
@@ -205,7 +205,7 @@ impl AddressingMode {
 pub struct OpCode(Instruction, AddressingMode);
 
 impl OpCode {
-    pub fn execute(&self, cpu: &mut CPU, ram: &mut RAM) {
+    pub fn execute<T: MemIO>(&self, cpu: &mut CPU, ram: &mut T) {
         let ins = &self.0;
         let adr_mode = &self.1;
         println!("instruction: {:?}", ins);
@@ -568,7 +568,7 @@ impl OpCode {
                 let flags = cpu.flags.get_as_u8();
                 cpu.push_to_stack(ram, flags);
                 cpu.flags.i = true;
-                cpu.pc = ram[0xFFFE] as u16 + (ram[0xFFFF] as u16) << 8;
+                cpu.pc = ram.read_byte(0xFFFE) as u16 + (ram.read_byte(0xFFFF) as u16) << 8;
             }
             NOP => {
                 cpu.remain_cycles += 1;
@@ -853,6 +853,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
 
 #[cfg(test)]
 mod test_addressing_modes {
+    use super::super::ram::RAM;
     use super::*;
 
     #[test]
@@ -1120,6 +1121,7 @@ mod test_addressing_modes {
 
 #[cfg(test)]
 mod test_instructions {
+    use super::super::ram::RAM;
     use super::*;
 
     #[test]
