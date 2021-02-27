@@ -208,8 +208,10 @@ impl OpCode {
     pub fn execute<T: MemIO>(&self, cpu: &mut CPU, ram: &mut T) {
         let ins = &self.0;
         let adr_mode = &self.1;
-        println!("instruction: {:?}", ins);
-        println!("adr_mode:    {:?}", adr_mode);
+        if cpu.debug {
+            println!("instruction: {:?}", ins);
+            println!("adr_mode:    {:?}", adr_mode);
+        }
         match ins {
             LDA => {
                 let byte = adr_mode.fetch(cpu, ram).unwrap();
@@ -572,7 +574,6 @@ impl OpCode {
             }
             NOP => {
                 cpu.remain_cycles += 1;
-                println!("nop");
             }
             RTI => {
                 let flags = cpu.pull_from_stack(ram);

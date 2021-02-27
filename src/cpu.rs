@@ -15,6 +15,8 @@ pub struct CPU {
     pub flags: StatusFlag, // Processor Status
 
     pub remain_cycles: usize,
+
+    pub debug: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
