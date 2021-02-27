@@ -215,26 +215,44 @@ impl OpCode {
         match ins {
             LDA => {
                 let byte = adr_mode.fetch(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("fetch: 0x{:04x}", byte);
+                }
                 cpu.set_accumulator(byte);
             }
             LDX => {
                 let byte = adr_mode.fetch(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("fetch: 0x{:04x}", byte);
+                }
                 cpu.set_index_x(byte);
             }
             LDY => {
                 let byte = adr_mode.fetch(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("fetch: 0x{:04x}", byte);
+                }
                 cpu.set_index_y(byte);
             }
             STA => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 cpu.write_byte(ram, addr as usize, cpu.a);
             }
             STX => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 cpu.write_byte(ram, addr as usize, cpu.x);
             }
             STY => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 cpu.write_byte(ram, addr as usize, cpu.y);
             }
             TAX => {
@@ -330,6 +348,9 @@ impl OpCode {
             }
             INC => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 let byte = cpu.read_byte(ram, addr as usize);
                 let byte = byte.wrapping_add(1);
                 cpu.remain_cycles += 1;
@@ -350,6 +371,9 @@ impl OpCode {
             }
             DEC => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 let byte = cpu.read_byte(ram, addr as usize);
                 let byte = byte.wrapping_sub(1);
                 cpu.remain_cycles += 1;
@@ -377,6 +401,9 @@ impl OpCode {
                     cpu.set_accumulator(byte);
                 } else {
                     let addr = adr_mode.get_address(cpu, ram).unwrap();
+                    if cpu.debug {
+                        println!("addr: 0x{:04x}", addr);
+                    }
                     let byte = cpu.read_byte(ram, addr as usize);
                     cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
                     let byte = byte << 1;
@@ -393,6 +420,9 @@ impl OpCode {
                     cpu.set_accumulator(byte);
                 } else {
                     let addr = adr_mode.get_address(cpu, ram).unwrap();
+                    if cpu.debug {
+                        println!("addr: 0x{:04x}", addr);
+                    }
                     let byte = cpu.read_byte(ram, addr as usize);
                     cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
                     let byte = byte >> 1;
@@ -410,6 +440,9 @@ impl OpCode {
                     cpu.set_accumulator(byte);
                 } else {
                     let addr = adr_mode.get_address(cpu, ram).unwrap();
+                    if cpu.debug {
+                        println!("addr: 0x{:04x}", addr);
+                    }
                     let byte = cpu.read_byte(ram, addr as usize);
                     let new_first_byte = cpu.flags.c as u8;
                     cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
@@ -439,10 +472,16 @@ impl OpCode {
             JMP => {
                 cpu.remain_cycles += 1;
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 cpu.pc = addr;
             }
             JSR => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 let pc = cpu.pc - 1;
                 cpu.push_to_stack(ram, (pc & 0xFF) as u8);
                 cpu.push_to_stack(ram, (pc >> 8) as u8);
@@ -456,6 +495,9 @@ impl OpCode {
             }
             BCC => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 if cpu.flags.c == false {
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
@@ -466,6 +508,9 @@ impl OpCode {
             }
             BCS => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 if cpu.flags.c == true {
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
@@ -476,6 +521,9 @@ impl OpCode {
             }
             BNE => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 if cpu.flags.z == false {
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
@@ -486,6 +534,9 @@ impl OpCode {
             }
             BEQ => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 if cpu.flags.z == true {
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
@@ -496,6 +547,9 @@ impl OpCode {
             }
             BPL => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 if cpu.flags.n == false {
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
@@ -506,6 +560,9 @@ impl OpCode {
             }
             BMI => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 if cpu.flags.n == true {
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
@@ -516,6 +573,9 @@ impl OpCode {
             }
             BVC => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 if cpu.flags.v == false {
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
@@ -526,6 +586,9 @@ impl OpCode {
             }
             BVS => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
+                if cpu.debug {
+                    println!("addr: 0x{:04x}", addr);
+                }
                 if cpu.flags.v == true {
                     cpu.remain_cycles += 1;
                     if cpu.pc & 0xFF00 != addr & 0xFF00 {
