@@ -147,6 +147,11 @@ impl CPU {
         self.remain_cycles > 0
     }
 
+    #[cfg(not(feature = "logging"))]
+    fn log<T: MemIO>(&mut self, op: &OpCode, ram: &mut T) -> String {
+        "".to_string()
+    }
+
     #[cfg(feature = "logging")]
     fn log<T: MemIO>(&mut self, op: &OpCode, ram: &mut T) -> String {
         format!(

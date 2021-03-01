@@ -601,6 +601,11 @@ impl OpCode {
         }
     }
 
+    #[cfg(not(feature = "logging"))]
+    pub fn log<T: MemIO>(&self, cpu: &mut CPU, mem: &mut T) -> String {
+        "".to_string()
+    }
+
     #[cfg(feature = "logging")]
     pub fn log<T: MemIO>(&self, cpu: &mut CPU, mem: &mut T) -> String {
         let ins = self.0;
