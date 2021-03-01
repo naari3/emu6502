@@ -3,8 +3,8 @@ use std::usize;
 use crate::cpu::CPU;
 use crate::ram::MemIO;
 
-#[derive(Debug)]
-enum Instruction {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Instruction {
     LDA,
     LDX,
     LDY,
@@ -74,8 +74,8 @@ enum Instruction {
     RTI,
 }
 
-#[derive(Debug)]
-enum AddressingMode {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AddressingMode {
     Implied,
     Accumulator,
     Immediate,
@@ -146,14 +146,14 @@ impl AddressingMode {
             Relative => panic!("You can't call fetch from {:?}!", self),
             Indirect => panic!("You can't call fetch from {:?}!", self),
         };
-        if cpu.debug {
-            match byte {
-                Some(b) => {
-                    println!("fetch: 0x{:02x}", b);
-                }
-                None => {}
-            }
-        }
+        // if cpu.debug {
+        //     match byte {
+        //         Some(b) => {
+        //             println!("fetch: 0x{:02X}", b);
+        //         }
+        //         None => {}
+        //     }
+        // }
         byte
     }
 
@@ -208,28 +208,25 @@ impl AddressingMode {
             Implied => panic!("You can't call get_address from {:?}!", self),
             Immediate => panic!("You can't call get_address from {:?}!", self),
         };
-        if cpu.debug {
-            match addr {
-                Some(a) => {
-                    println!("addr: 0x{:04x}", a);
-                }
-                None => {}
-            }
-        }
+        // if cpu.debug {
+        //     match addr {
+        //         Some(a) => {
+        //             println!("addr: 0x{:04X}", a);
+        //         }
+        //         None => {}
+        //     }
+        // }
         addr
     }
 }
 
-pub struct OpCode(Instruction, AddressingMode);
+#[derive(Debug, Clone, Copy)]
+pub struct OpCode(pub Instruction, pub AddressingMode);
 
 impl OpCode {
     pub fn execute<T: MemIO>(&self, cpu: &mut CPU, ram: &mut T) {
         let ins = &self.0;
         let adr_mode = &self.1;
-        if cpu.debug {
-            println!("instruction: {:?}", ins);
-            println!("adr_mode:    {:?}", adr_mode);
-        }
         match ins {
             LDA => {
                 let byte = adr_mode.fetch(cpu, ram).unwrap();
@@ -602,6 +599,104 @@ impl OpCode {
                 cpu.remain_cycles -= 1;
             }
         }
+    }
+
+    #[cfg(feature = "logging")]
+    pub fn log<T: MemIO>(&self, cpu: &mut CPU, mem: &mut T) -> String {
+        let ins = self.0;
+        let adr_mode = self.1;
+
+        let ins_byte = OPCODES
+            .iter()
+            .position(|&o| match o {
+                Some(ins2) => ins == ins2.0,
+                None => false,
+            })
+            .unwrap() as u8;
+        let need_byte_count = match adr_mode {
+            Implied => 0,
+            Accumulator => 0,
+            Immediate => 1,
+            ZeroPage => 1,
+            ZeroPageX => 1,
+            ZeroPageY => 1,
+            Relative => 1,
+            Absolute => 2,
+            AbsoluteX => 2,
+            AbsoluteY => 2,
+            Indirect => 2,
+            IndexedIndirect => 1,
+            IndirectIndexed => 1,
+        };
+        let mut bytes = vec![];
+        for i in 0..need_byte_count {
+            bytes.push(mem.read_byte((cpu.pc + i) as usize));
+        }
+
+        let (mut addr_str, addr) = match adr_mode {
+            Implied => ("".to_string(), None),
+            Accumulator => ("A".to_string(), None),
+            Immediate => (format!("#${:02X}", bytes[0]), Some(bytes[0] as u16)),
+            ZeroPage => (format!("${:02X}", bytes[0]), Some(bytes[0] as u16)),
+            ZeroPageX => (
+                format!("${:02X},X", bytes[0]),
+                Some((bytes[0].wrapping_add(cpu.x)) as u16),
+            ),
+            ZeroPageY => (
+                format!("${:02X},Y", bytes[0]),
+                Some((bytes[0].wrapping_add(cpu.y)) as u16),
+            ),
+            Relative => (
+                format!("${:04X}", cpu.pc + 1 + bytes[0] as u16),
+                Some(cpu.pc + 1 + bytes[0] as u16),
+            ),
+            Absolute => (
+                format!("${:04X}", bytes[0] as u16 + ((bytes[1] as u16) << 8)),
+                Some(bytes[0] as u16 + ((bytes[1] as u16) << 8)),
+            ),
+            AbsoluteX => (
+                format!("${:04X},X", bytes[0] as u16 + ((bytes[1] as u16) << 8)),
+                Some(bytes[0] as u16 + ((bytes[1] as u16) << 8).wrapping_add(cpu.x as u16)),
+            ),
+            AbsoluteY => (
+                format!("${:04X},Y", bytes[0] as u16 + ((bytes[1] as u16) << 8)),
+                Some(bytes[0] as u16 + ((bytes[1] as u16) << 8).wrapping_add(cpu.y as u16)),
+            ),
+            Indirect => {
+                let in_addr = bytes[0] as u16 + ((bytes[1] as u16) << 8);
+                let addr = mem.read_byte(in_addr as usize) as u16
+                    + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                (
+                    format!("(${:04X})", bytes[0] as u16 + ((bytes[1] as u16) << 8)),
+                    Some(addr),
+                )
+            }
+            IndexedIndirect => {
+                let in_addr = bytes[0].wrapping_add(cpu.x);
+                let addr = mem.read_byte(in_addr as usize) as u16
+                    + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                (format!("(${:02X},X)", bytes[0]), Some(addr))
+            }
+            IndirectIndexed => {
+                let in_addr = bytes[0];
+                let addr = mem.read_byte(in_addr as usize) as u16
+                    + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8)
+                    + cpu.y as u16;
+                (format!("(${:02X}),Y", bytes[0]), Some(addr))
+            }
+        };
+        match ins {
+            STA | STX | STY => addr_str = format!("{:} = {:02X}", addr_str, addr.unwrap()),
+            _ => {}
+        }
+
+        let bytes_str = match need_byte_count {
+            1 => format!("{:02X} {:02X}", ins_byte, bytes[0]),
+            2 => format!("{:02X} {:02X} {:02X}", ins_byte, bytes[0], bytes[1]),
+            _ => format!("{:02X}", ins_byte),
+        };
+
+        format!("{: <8}  {:?} {: <27} ", bytes_str, ins, addr_str)
     }
 }
 

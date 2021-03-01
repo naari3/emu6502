@@ -1,4 +1,4 @@
-use crate::instruction::OPCODES;
+use crate::instruction::{OpCode, OPCODES};
 use crate::ram::MemIO;
 use crate::reset::Reset;
 
@@ -15,8 +15,7 @@ pub struct CPU {
     pub flags: StatusFlag, // Processor Status
 
     pub remain_cycles: usize,
-
-    pub debug: bool,
+    pub total_cycles: usize,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -132,9 +131,13 @@ impl CPU {
         if !self.is_waiting_for_cycles() {
             let op = self.fetch_byte(ram) as usize;
             if let Some(op) = &OPCODES[op] {
+                if cfg!(feature = "logging") {
+                    println!("{}", self.log(op, ram));
+                }
                 op.execute(self, ram);
+                self.total_cycles += self.remain_cycles;
             } else {
-                panic!("{:#01x} is not implemented!", op);
+                panic!("{:#01X} is not implemented!", op);
             }
         }
         self.remain_cycles -= 1;
@@ -142,6 +145,20 @@ impl CPU {
 
     fn is_waiting_for_cycles(&self) -> bool {
         self.remain_cycles > 0
+    }
+
+    #[cfg(feature = "logging")]
+    fn log<T: MemIO>(&mut self, op: &OpCode, ram: &mut T) -> String {
+        format!(
+            "{:04X}  {} A:{:02X} X:{:02X} Y:{:02X} P:{:02X} SP:{:02X}",
+            self.pc - 1,
+            op.log(self, ram),
+            self.a,
+            self.x,
+            self.y,
+            self.flags.get_as_u8(),
+            self.sp
+        )
     }
 }
 
