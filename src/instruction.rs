@@ -614,7 +614,7 @@ impl OpCode {
         let ins_byte = OPCODES
             .iter()
             .position(|&o| match o {
-                Some(ins2) => ins == ins2.0,
+                Some(ins2) => ins == ins2.0 && adr_mode == ins2.1,
                 None => false,
             })
             .unwrap() as u8;
@@ -638,7 +638,7 @@ impl OpCode {
             bytes.push(mem.read_byte((cpu.pc + i) as usize));
         }
 
-        let (mut addr_str, addr) = match adr_mode {
+        let (mut addr_str, _addr) = match adr_mode {
             Implied => ("".to_string(), None),
             Accumulator => ("A".to_string(), None),
             Immediate => (format!("#${:02X}", bytes[0]), Some(bytes[0] as u16)),
