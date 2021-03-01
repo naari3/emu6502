@@ -133,7 +133,7 @@ impl AddressingMode {
                 Some(cpu.read_byte(ram, addr as usize))
             }
             IndirectIndexed => {
-                let ind_addr = cpu.fetch_byte(ram) as u16;
+                let ind_addr = cpu.fetch_byte(ram);
                 let addr = (cpu.read_byte(ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(ram, (ind_addr.wrapping_add(1)) as usize) as u16) << 8))
                     .wrapping_add(cpu.y as u16);
@@ -198,7 +198,7 @@ impl AddressingMode {
                 Some(addr)
             }
             IndirectIndexed => {
-                let ind_addr = cpu.fetch_byte(ram) as u16;
+                let ind_addr = cpu.fetch_byte(ram);
                 let addr = (cpu.read_byte(ram, ind_addr as usize) as u16
                     + ((cpu.read_byte(ram, (ind_addr.wrapping_add(1)) as usize) as u16) << 8))
                     .wrapping_add(cpu.y as u16);
