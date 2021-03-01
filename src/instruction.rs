@@ -74,7 +74,9 @@ pub enum Instruction {
     RTI,
     //
     // Unofficial
+    // see also https://wiki.nesdev.com/w/index.php/Programming_with_unofficial_opcodes
     SKB,
+    IGN,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -215,6 +217,19 @@ impl AddressingMode {
             }
             Accumulator | Implied | Immediate => {
                 panic!("You can't call get_address from {:?}!", self)
+            }
+        }
+    }
+}
+
+impl std::fmt::Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SKB => {
+                write!(f, "{}", "NOP")
+            }
+            _ => {
+                write!(f, "{}", self)
             }
         }
     }
@@ -606,6 +621,9 @@ impl OpCode {
             SKB => {
                 adr_mode.fetch(cpu, ram).unwrap();
             }
+            IGN => {
+                adr_mode.fetch(cpu, ram).unwrap();
+            }
         }
     }
 
@@ -814,7 +832,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x01 */ Some(OpCode(ORA, IndexedIndirect, Official)),
     /* 0x02 */ None,
     /* 0x03 */ None,
-    /* 0x04 */ None,
+    /* 0x04 */ Some(OpCode(IGN, ZeroPage, Unofficial)),
     /* 0x05 */ Some(OpCode(ORA, ZeroPage, Official)),
     /* 0x06 */ Some(OpCode(ASL, ZeroPage, Official)),
     /* 0x07 */ None,
@@ -822,7 +840,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x09 */ Some(OpCode(ORA, Immediate, Official)),
     /* 0x0A */ Some(OpCode(ASL, Accumulator, Official)),
     /* 0x0B */ None,
-    /* 0x0C */ None,
+    /* 0x0C */ Some(OpCode(IGN, Absolute, Unofficial)),
     /* 0x0D */ Some(OpCode(ORA, Absolute, Official)),
     /* 0x0E */ Some(OpCode(ASL, Absolute, Official)),
     /* 0x0F */ None,
@@ -830,7 +848,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x11 */ Some(OpCode(ORA, IndirectIndexed, Official)),
     /* 0x12 */ None,
     /* 0x13 */ None,
-    /* 0x14 */ None,
+    /* 0x14 */ Some(OpCode(IGN, ZeroPageX, Unofficial)),
     /* 0x15 */ Some(OpCode(ORA, ZeroPageX, Official)),
     /* 0x16 */ Some(OpCode(ASL, ZeroPageX, Official)),
     /* 0x17 */ None,
@@ -838,7 +856,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x19 */ Some(OpCode(ORA, AbsoluteY, Official)),
     /* 0x1A */ Some(OpCode(NOP, Implied, Official)),
     /* 0x1B */ None,
-    /* 0x1C */ None,
+    /* 0x1C */ Some(OpCode(IGN, AbsoluteX, Unofficial)),
     /* 0x1D */ Some(OpCode(ORA, AbsoluteX, Official)),
     /* 0x1E */ Some(OpCode(ASL, AbsoluteX, Official)),
     /* 0x1F */ None,
@@ -862,7 +880,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x31 */ Some(OpCode(AND, IndirectIndexed, Official)),
     /* 0x32 */ None,
     /* 0x33 */ None,
-    /* 0x34 */ None,
+    /* 0x34 */ Some(OpCode(IGN, ZeroPageX, Unofficial)),
     /* 0x35 */ Some(OpCode(AND, ZeroPageX, Official)),
     /* 0x36 */ Some(OpCode(ROL, ZeroPageX, Official)),
     /* 0x37 */ None,
@@ -870,7 +888,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x39 */ Some(OpCode(AND, AbsoluteY, Official)),
     /* 0x3A */ Some(OpCode(NOP, Implied, Official)),
     /* 0x3B */ None,
-    /* 0x3C */ None,
+    /* 0x3C */ Some(OpCode(IGN, AbsoluteX, Unofficial)),
     /* 0x3D */ Some(OpCode(AND, AbsoluteX, Official)),
     /* 0x3E */ Some(OpCode(ROL, AbsoluteX, Official)),
     /* 0x3F */ None,
@@ -878,7 +896,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x41 */ Some(OpCode(EOR, IndexedIndirect, Official)),
     /* 0x42 */ None,
     /* 0x43 */ None,
-    /* 0x44 */ None,
+    /* 0x44 */ Some(OpCode(IGN, ZeroPage, Unofficial)),
     /* 0x45 */ Some(OpCode(EOR, ZeroPage, Official)),
     /* 0x46 */ Some(OpCode(LSR, ZeroPage, Official)),
     /* 0x47 */ None,
@@ -894,7 +912,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x51 */ Some(OpCode(EOR, IndirectIndexed, Official)),
     /* 0x52 */ None,
     /* 0x53 */ None,
-    /* 0x54 */ None,
+    /* 0x54 */ Some(OpCode(IGN, ZeroPageX, Unofficial)),
     /* 0x55 */ Some(OpCode(EOR, ZeroPageX, Official)),
     /* 0x56 */ Some(OpCode(LSR, ZeroPageX, Official)),
     /* 0x57 */ None,
@@ -902,7 +920,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x59 */ Some(OpCode(EOR, AbsoluteY, Official)),
     /* 0x5A */ Some(OpCode(NOP, Implied, Official)),
     /* 0x5B */ None,
-    /* 0x5C */ None,
+    /* 0x5C */ Some(OpCode(IGN, AbsoluteX, Unofficial)),
     /* 0x5D */ Some(OpCode(EOR, AbsoluteX, Official)),
     /* 0x5E */ Some(OpCode(LSR, AbsoluteX, Official)),
     /* 0x5F */ None,
@@ -910,7 +928,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x61 */ Some(OpCode(ADC, IndexedIndirect, Official)),
     /* 0x62 */ None,
     /* 0x63 */ None,
-    /* 0x64 */ None,
+    /* 0x64 */ Some(OpCode(IGN, ZeroPage, Unofficial)),
     /* 0x65 */ Some(OpCode(ADC, ZeroPage, Official)),
     /* 0x66 */ Some(OpCode(ROR, ZeroPage, Official)),
     /* 0x67 */ None,
@@ -926,7 +944,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x71 */ Some(OpCode(ADC, IndirectIndexed, Official)),
     /* 0x72 */ None,
     /* 0x73 */ None,
-    /* 0x74 */ None,
+    /* 0x74 */ Some(OpCode(IGN, ZeroPageX, Unofficial)),
     /* 0x75 */ Some(OpCode(ADC, ZeroPageX, Official)),
     /* 0x76 */ Some(OpCode(ROR, ZeroPageX, Official)),
     /* 0x77 */ None,
@@ -934,7 +952,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x79 */ Some(OpCode(ADC, AbsoluteY, Official)),
     /* 0x7A */ Some(OpCode(NOP, Implied, Official)),
     /* 0x7B */ None,
-    /* 0x7C */ None,
+    /* 0x7C */ Some(OpCode(IGN, AbsoluteX, Unofficial)),
     /* 0x7D */ Some(OpCode(ADC, AbsoluteX, Official)),
     /* 0x7E */ Some(OpCode(ROR, AbsoluteX, Official)),
     /* 0x7F */ None,
@@ -1022,7 +1040,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0xD1 */ Some(OpCode(CMP, IndirectIndexed, Official)),
     /* 0xD2 */ None,
     /* 0xD3 */ None,
-    /* 0xD4 */ None,
+    /* 0xD4 */ Some(OpCode(IGN, ZeroPageX, Unofficial)),
     /* 0xD5 */ Some(OpCode(CMP, ZeroPageX, Official)),
     /* 0xD6 */ Some(OpCode(DEC, ZeroPageX, Official)),
     /* 0xD7 */ None,
@@ -1030,7 +1048,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0xD9 */ Some(OpCode(CMP, AbsoluteY, Official)),
     /* 0xDA */ Some(OpCode(NOP, Implied, Official)),
     /* 0xDB */ None,
-    /* 0xDC */ None,
+    /* 0xDC */ Some(OpCode(IGN, AbsoluteX, Unofficial)),
     /* 0xDD */ Some(OpCode(CMP, AbsoluteX, Official)),
     /* 0xDE */ Some(OpCode(DEC, AbsoluteX, Official)),
     /* 0xDF */ None,
@@ -1054,7 +1072,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0xF1 */ Some(OpCode(SBC, IndirectIndexed, Official)),
     /* 0xF2 */ None,
     /* 0xF3 */ None,
-    /* 0xF4 */ None,
+    /* 0xF4 */ Some(OpCode(IGN, ZeroPageX, Unofficial)),
     /* 0xF5 */ Some(OpCode(SBC, ZeroPageX, Official)),
     /* 0xF6 */ Some(OpCode(INC, ZeroPageX, Official)),
     /* 0xF7 */ None,
@@ -1062,7 +1080,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0xF9 */ Some(OpCode(SBC, AbsoluteY, Official)),
     /* 0xFA */ Some(OpCode(NOP, Implied, Official)),
     /* 0xFB */ None,
-    /* 0xFC */ None,
+    /* 0xFC */ Some(OpCode(IGN, AbsoluteX, Unofficial)),
     /* 0xFD */ Some(OpCode(SBC, AbsoluteX, Official)),
     /* 0xFE */ Some(OpCode(INC, AbsoluteX, Official)),
     /* 0xFF */ None,
@@ -2256,5 +2274,13 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         OpCode(Instruction::SKB, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
+    }
+
+    #[test]
+    fn test_ign() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+
+        OpCode(Instruction::IGN, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
     }
 }
