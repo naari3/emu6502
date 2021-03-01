@@ -691,7 +691,10 @@ impl OpCode {
             }
         };
         match ins {
-            STA | STX | STY => addr_str = format!("{:} = {:02X}", addr_str, addr.unwrap()),
+            STA => addr_str = format!("{:} = {:02X}", addr_str, cpu.a),
+            STX => addr_str = format!("{:} = {:02X}", addr_str, cpu.x),
+            STY => addr_str = format!("{:} = {:02X}", addr_str, cpu.y),
+            BIT => addr_str = format!("{:} = {:02X}", addr_str, cpu.a),
             _ => {}
         }
 
