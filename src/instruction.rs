@@ -697,7 +697,8 @@ impl OpCode {
             }
         };
         match ins {
-            LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND => match adr_mode {
+            LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND | EOR | ADC | SBC => match adr_mode
+            {
                 Implied | Accumulator | Immediate => {}
                 IndexedIndirect => {
                     let in_addr = bytes[0].wrapping_add(cpu.x);
