@@ -822,7 +822,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $17
     Some(OpCode(CLC, Implied)),         // $18    CLC          Implied
     Some(OpCode(ORA, AbsoluteY)),       // $19    ORA $NNNN,Y  AbsoluteY
-    None,                               // $1A
+    Some(OpCode(NOP, Implied)),         // $1A    NOP          Implied (Unofficial)
     None,                               // $1B
     None,                               // $1C
     Some(OpCode(ORA, AbsoluteX)),       // $1D    ORA $NNNN,X  AbsoluteX
@@ -854,7 +854,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $37
     Some(OpCode(SEC, Implied)),         // $38    SEC          Implied
     Some(OpCode(AND, AbsoluteY)),       // $39    AND $NNNN,Y  AbsoluteY
-    None,                               // $3A
+    Some(OpCode(NOP, Implied)),         // $3A    NOP          Implied (Unofficial)
     None,                               // $3B
     None,                               // $3C
     Some(OpCode(AND, AbsoluteX)),       // $3D    AND $NNNN,X  AbsoluteX
@@ -886,7 +886,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $57
     Some(OpCode(CLI, Implied)),         // $58    CLI          Implied
     Some(OpCode(EOR, AbsoluteY)),       // $59    EOR $NNNN,Y  AbsoluteY
-    None,                               // $5A
+    Some(OpCode(NOP, Implied)),         // $5A    NOP          Implied (Unofficial)
     None,                               // $5B
     None,                               // $5C
     Some(OpCode(EOR, AbsoluteX)),       // $5D    EOR $NNNN,X  AbsoluteX
@@ -918,7 +918,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $77
     Some(OpCode(SEI, Implied)),         // $78    SEI          Implied
     Some(OpCode(ADC, AbsoluteY)),       // $79    ADC $NNNN,Y  AbsoluteY
-    None,                               // $7A
+    Some(OpCode(NOP, Implied)),         // $7A    NOP          Implied (Unofficial)
     None,                               // $7B
     None,                               // $7C
     Some(OpCode(ADC, AbsoluteX)),       // $7D    ADC $NNNN,X  AbsoluteX
@@ -1014,7 +1014,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $D7
     Some(OpCode(CLD, Implied)),         // $D8    CLD          Implied
     Some(OpCode(CMP, AbsoluteY)),       // $D9    CMP $NNNN,Y  AbsoluteY
-    None,                               // $DA
+    Some(OpCode(NOP, Implied)),         // $DA    NOP          Implied (Unofficial)
     None,                               // $DB
     None,                               // $DC
     Some(OpCode(CMP, AbsoluteX)),       // $DD    CMP $NNNN,X  AbsoluteX
@@ -1046,7 +1046,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $F7
     Some(OpCode(SED, Implied)),         // $F8    SED          Implied
     Some(OpCode(SBC, AbsoluteY)),       // $F9    SBC $NNNN,Y  AbsoluteY
-    None,                               // $FA
+    Some(OpCode(NOP, Implied)),         // $FA    NOP          Implied (Unofficial)
     None,                               // $FB
     None,                               // $FC
     Some(OpCode(SBC, AbsoluteX)),       // $FD    SBC $NNNN,X  AbsoluteX
