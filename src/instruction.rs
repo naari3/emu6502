@@ -713,6 +713,19 @@ impl OpCode {
             LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND | EOR | ADC | SBC | CMP | CPX
             | CPY | LSR | ASL | ROR | ROL | INC | DEC => match adr_mode {
                 Implied | Accumulator | Immediate => {}
+                AbsoluteY => {
+                    addr_str = format!(
+                        "{:} @ {:04X}",
+                        addr_str,
+                        (bytes[0] as u16)
+                            .wrapping_add(((bytes[1] as u16) << 8).wrapping_add(cpu.y as u16))
+                    );
+                    addr_str = format!(
+                        "{:} = {:02X}",
+                        addr_str,
+                        mem.read_byte(addr.unwrap() as usize)
+                    )
+                }
                 IndexedIndirect => {
                     let in_addr = bytes[0].wrapping_add(cpu.x);
                     addr_str = format!("{:} @ {:02X}", addr_str, in_addr);
@@ -742,14 +755,6 @@ impl OpCode {
                     )
                 }
                 _ => {
-                    if ins == LDA && adr_mode == AbsoluteY {
-                        addr_str = format!(
-                            "{:} @ {:04X}",
-                            addr_str,
-                            (bytes[0] as u16)
-                                .wrapping_add(((bytes[1] as u16) << 8).wrapping_add(cpu.y as u16))
-                        )
-                    }
                     addr_str = format!(
                         "{:} = {:02X}",
                         addr_str,
