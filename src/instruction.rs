@@ -736,6 +736,11 @@ impl OpCode {
                     )
                 }
             },
+            JMP => {
+                if adr_mode == Indirect {
+                    addr_str = format!("{:} = {:04X}", addr_str, addr.unwrap());
+                }
+            }
             _ => {}
         }
 
