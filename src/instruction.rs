@@ -308,8 +308,8 @@ impl OpCode {
             BIT => {
                 let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.flags.z = cpu.a & byte == 0;
-                cpu.flags.v = (byte >> 5 & 1) == 1;
-                cpu.flags.n = (byte >> 6 & 1) == 1;
+                cpu.flags.v = (byte >> 6 & 1) == 1;
+                cpu.flags.n = (byte >> 7 & 1) == 1;
             }
             ADC => {
                 let byte = adr_mode.fetch(cpu, ram).unwrap();
@@ -1572,7 +1572,7 @@ mod test_instructions {
 
         cpu.pc = 0x8000;
         cpu.a = 0;
-        ram[0x1] = 0b01100000;
+        ram[0x1] = 0b11000000;
         ram[0x8000] = 0x1;
 
         OpCode(Instruction::BIT, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
