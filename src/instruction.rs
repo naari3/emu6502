@@ -694,36 +694,18 @@ impl OpCode {
                 (format!("(${:02X}),Y", bytes[0]), Some(addr))
             }
         };
-        match ins {
-            STA => {
-                addr_str = format!(
-                    "{:} = {:02X}",
-                    addr_str,
-                    mem.read_byte(addr.unwrap() as usize)
-                )
-            }
-            STX => {
-                addr_str = format!(
-                    "{:} = {:02X}",
-                    addr_str,
-                    mem.read_byte(addr.unwrap() as usize)
-                )
-            }
-            STY => {
-                addr_str = format!(
-                    "{:} = {:02X}",
-                    addr_str,
-                    mem.read_byte(addr.unwrap() as usize)
-                )
-            }
-            BIT => {
-                addr_str = format!(
-                    "{:} = {:02X}",
-                    addr_str,
-                    mem.read_byte(addr.unwrap() as usize)
-                )
-            }
-            _ => {}
+        match adr_mode {
+            Implied | Accumulator | Immediate => {}
+            _ => match ins {
+                LDA | LDX | LDY | STA | STX | STY | BIT => {
+                    addr_str = format!(
+                        "{:} = {:02X}",
+                        addr_str,
+                        mem.read_byte(addr.unwrap() as usize)
+                    )
+                }
+                _ => {}
+            },
         }
 
         let bytes_str = match need_byte_count {
