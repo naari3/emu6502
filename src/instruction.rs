@@ -599,9 +599,8 @@ impl OpCode {
                 let flags = cpu.pull_from_stack(ram);
                 cpu.flags.set_as_u8(flags);
                 cpu.flags.b = false;
-                cpu.pc = ((cpu.pull_from_stack(ram) as u16)
-                    + ((cpu.pull_from_stack(ram) as u16) << 8))
-                    + 1;
+                cpu.pc =
+                    (cpu.pull_from_stack(ram) as u16) + ((cpu.pull_from_stack(ram) as u16) << 8);
                 cpu.remain_cycles -= 1;
             }
         }
@@ -2156,7 +2155,7 @@ mod test_instructions {
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.i, false);
         assert_eq!(cpu.flags.b, false);
-        assert_eq!(cpu.pc, 0x9001);
+        assert_eq!(cpu.pc, 0x9000);
     }
 
     #[test]
