@@ -238,7 +238,7 @@ impl AddressingMode {
 impl std::fmt::Display for Instruction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SKB => {
+            SKB | IGN => {
                 write!(f, "{}", "NOP")
             }
             _ => {
@@ -736,7 +736,7 @@ impl OpCode {
         };
         match ins {
             LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND | EOR | ADC | SBC | CMP | CPX
-            | CPY | LSR | ASL | ROR | ROL | INC | DEC => match adr_mode {
+            | CPY | LSR | ASL | ROR | ROL | INC | DEC | SKB | IGN => match adr_mode {
                 Implied | Accumulator | Immediate => {}
                 ZeroPageX => {
                     addr_str = format!("{:} @ {:02X}", addr_str, (bytes[0]).wrapping_add(cpu.x));
