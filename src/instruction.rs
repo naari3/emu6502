@@ -235,19 +235,6 @@ impl AddressingMode {
     }
 }
 
-impl std::fmt::Display for Instruction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SKB | IGN => {
-                write!(f, "{}", "NOP")
-            }
-            _ => {
-                write!(f, "{}", self)
-            }
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct OpCode(pub Instruction, pub AddressingMode, Officiality);
 
@@ -648,17 +635,20 @@ impl OpCode {
 
     #[cfg(feature = "logging")]
     pub fn log<T: MemIO>(&self, cpu: &mut CPU, mem: &mut T) -> String {
-        let ins = self.0;
-        let ofc = self.2;
-        let adr_mode = self.1;
+        let ins_byte = mem.read_byte((cpu.pc - 1) as usize);
+        let op = &OPCODES[ins_byte as usize].unwrap();
 
-        let ins_byte = OPCODES
-            .iter()
-            .position(|&o| match o {
-                Some(ins2) => ins == ins2.0 && adr_mode == ins2.1,
-                None => false,
-            })
-            .unwrap() as u8;
+        let ins = op.0;
+        let adr_mode = op.1;
+        let ofc = op.2;
+
+        let ins_name = match ins {
+            SKB | IGN => "NOP".to_string(),
+            _ => {
+                format!("{:?}", ins)
+            }
+        };
+
         let need_byte_count = match adr_mode {
             Implied => 0,
             Accumulator => 0,
@@ -830,7 +820,7 @@ impl OpCode {
             _ => format!("{:02X}", ins_byte),
         };
 
-        format!("{: <8} {}{:?} {: <26} ", bytes_str, ofc, ins, addr_str)
+        format!("{: <8} {}{} {: <26} ", bytes_str, ofc, ins_name, addr_str)
     }
 }
 
