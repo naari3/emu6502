@@ -134,10 +134,10 @@ impl AddressingMode {
             }
             IndirectIndexed => {
                 let ind_addr = cpu.fetch_byte(ram) as u16;
-                let addr = cpu.read_byte(ram, ind_addr as usize) as u16
-                    + ((cpu.read_byte(ram, (ind_addr + 1) as usize) as u16) << 8)
-                    + cpu.y as u16;
-                if (addr - cpu.y as u16) & 0xFF00 != addr & 0xFF00 {
+                let addr = (cpu.read_byte(ram, ind_addr as usize) as u16
+                    + ((cpu.read_byte(ram, (ind_addr.wrapping_add(1)) as usize) as u16) << 8))
+                    .wrapping_add(cpu.y as u16);
+                if addr.wrapping_sub(cpu.y as u16) & 0xFF00 != addr & 0xFF00 {
                     cpu.remain_cycles += 1;
                 }
                 Some(cpu.read_byte(ram, addr as usize))
@@ -199,9 +199,9 @@ impl AddressingMode {
             }
             IndirectIndexed => {
                 let ind_addr = cpu.fetch_byte(ram) as u16;
-                let addr = cpu.read_byte(ram, ind_addr as usize) as u16
-                    + ((cpu.read_byte(ram, (ind_addr.wrapping_add(1)) as usize) as u16) << 8)
-                    + cpu.y as u16;
+                let addr = (cpu.read_byte(ram, ind_addr as usize) as u16
+                    + ((cpu.read_byte(ram, (ind_addr.wrapping_add(1)) as usize) as u16) << 8))
+                    .wrapping_add(cpu.y as u16);
                 Some(addr)
             }
             Accumulator => panic!("You can't call get_address from {:?}!", self),
@@ -690,9 +690,9 @@ impl OpCode {
             }
             IndirectIndexed => {
                 let in_addr = bytes[0];
-                let addr = mem.read_byte(in_addr as usize) as u16
-                    + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8)
-                    + cpu.y as u16;
+                let addr = (mem.read_byte(in_addr as usize) as u16
+                    + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8))
+                    .wrapping_add(cpu.y as u16);
                 (format!("(${:02X}),Y", bytes[0]), Some(addr))
             }
         };
@@ -717,7 +717,11 @@ impl OpCode {
                     let indirected_addr = mem.read_byte(in_addr as usize) as u16
                         + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
                     addr_str = format!("{:} = {:04X}", addr_str, indirected_addr);
-                    addr_str = format!("{:} @ {:04X}", addr_str, indirected_addr + cpu.y as u16);
+                    addr_str = format!(
+                        "{:} @ {:04X}",
+                        addr_str,
+                        indirected_addr.wrapping_add(cpu.y as u16)
+                    );
                     addr_str = format!(
                         "{:} = {:02X}",
                         addr_str,
