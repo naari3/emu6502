@@ -2273,7 +2273,12 @@ mod test_instructions {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
 
-        OpCode(Instruction::SKB, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x20;
+
+        OpCode(Instruction::SKB, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
+
+        assert_eq!(cpu.remain_cycles, 1);
     }
 
     #[test]
@@ -2281,6 +2286,11 @@ mod test_instructions {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
 
-        OpCode(Instruction::IGN, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x20;
+        ram[0x8001] = 0x10;
+
+        OpCode(Instruction::IGN, AddressingMode::Absolute, Official).execute(&mut cpu, &mut ram);
+        assert_eq!(cpu.remain_cycles, 3);
     }
 }
