@@ -186,7 +186,8 @@ impl StatusFlag {
         self.i = (byte >> 2 & 1) == 1;
         self.d = (byte >> 3 & 1) == 1;
         self.b = (byte >> 4 & 1) == 1;
-        self.r = (byte >> 5 & 1) == 1;
+        // self.r = (byte >> 5 & 1) == 1;
+        self.r = true; // always true ?
         self.v = (byte >> 6 & 1) == 1;
         self.n = (byte >> 7 & 1) == 1;
     }
@@ -223,7 +224,7 @@ mod test_status_flags {
                 i: true,
                 d: false,
                 b: true,
-                r: false,
+                r: true,
                 v: true,
                 n: false,
             }
