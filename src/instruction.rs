@@ -312,17 +312,21 @@ impl OpCode {
                 cpu.flags.n = (byte >> 7 & 1) == 1;
             }
             ADC => {
-                let byte = adr_mode.fetch(cpu, ram).unwrap();
-                let (byte, overflowing1) = cpu.a.overflowing_add(byte);
+                let before_byte = adr_mode.fetch(cpu, ram).unwrap();
+                let (byte, overflowing1) = cpu.a.overflowing_add(before_byte);
                 let (byte, overflowing2) = byte.overflowing_add(cpu.flags.c as u8);
                 cpu.flags.c = overflowing1 || overflowing2;
+                cpu.flags.v =
+                    (((cpu.a ^ before_byte) & 0x80) != 0) && (((cpu.a ^ byte) & 0x80) != 0);
                 cpu.set_accumulator(byte);
             }
             SBC => {
-                let byte = adr_mode.fetch(cpu, ram).unwrap();
-                let (byte, overflowing1) = cpu.a.overflowing_sub(byte);
+                let before_byte = adr_mode.fetch(cpu, ram).unwrap();
+                let (byte, overflowing1) = cpu.a.overflowing_sub(before_byte);
                 let (byte, overflowing2) = byte.overflowing_sub(!cpu.flags.c as u8);
                 cpu.flags.c = !(overflowing1 || overflowing2);
+                cpu.flags.v =
+                    (((cpu.a ^ before_byte) & 0x80) != 0) && (((cpu.a ^ byte) & 0x80) != 0);
                 cpu.set_accumulator(byte);
             }
             CMP => {
@@ -1583,6 +1587,7 @@ mod test_instructions {
 
     #[test]
     fn test_adc() {
+        // TODO: implement test for v flag
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
 
@@ -1605,6 +1610,7 @@ mod test_instructions {
 
     #[test]
     fn test_sbc() {
+        // TODO: implement test for v flag
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
 
