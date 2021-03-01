@@ -317,7 +317,7 @@ impl OpCode {
                 let (byte, overflowing2) = byte.overflowing_add(cpu.flags.c as u8);
                 cpu.flags.c = overflowing1 || overflowing2;
                 cpu.flags.v =
-                    (((cpu.a ^ before_byte) & 0x80) != 0) && (((cpu.a ^ byte) & 0x80) != 0);
+                    (((cpu.a ^ byte) & 0x80) != 0) && (((before_byte ^ byte) & 0x80) != 0);
                 cpu.set_accumulator(byte);
             }
             SBC => {
