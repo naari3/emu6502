@@ -697,30 +697,29 @@ impl OpCode {
             }
         };
         match ins {
-            LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND | EOR | ADC | SBC | CMP => {
-                match adr_mode {
-                    Implied | Accumulator | Immediate => {}
-                    IndexedIndirect => {
-                        let in_addr = bytes[0].wrapping_add(cpu.x);
-                        addr_str = format!("{:} @ {:02X}", addr_str, in_addr);
-                        let indexed_addr = mem.read_byte(in_addr as usize) as u16
-                            + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
-                        addr_str = format!("{:} = {:04X}", addr_str, indexed_addr);
-                        addr_str = format!(
-                            "{:} = {:02X}",
-                            addr_str,
-                            mem.read_byte(addr.unwrap() as usize)
-                        )
-                    }
-                    _ => {
-                        addr_str = format!(
-                            "{:} = {:02X}",
-                            addr_str,
-                            mem.read_byte(addr.unwrap() as usize)
-                        )
-                    }
+            LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND | EOR | ADC | SBC | CMP | CPX
+            | CPY => match adr_mode {
+                Implied | Accumulator | Immediate => {}
+                IndexedIndirect => {
+                    let in_addr = bytes[0].wrapping_add(cpu.x);
+                    addr_str = format!("{:} @ {:02X}", addr_str, in_addr);
+                    let indexed_addr = mem.read_byte(in_addr as usize) as u16
+                        + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                    addr_str = format!("{:} = {:04X}", addr_str, indexed_addr);
+                    addr_str = format!(
+                        "{:} = {:02X}",
+                        addr_str,
+                        mem.read_byte(addr.unwrap() as usize)
+                    )
                 }
-            }
+                _ => {
+                    addr_str = format!(
+                        "{:} = {:02X}",
+                        addr_str,
+                        mem.read_byte(addr.unwrap() as usize)
+                    )
+                }
+            },
             _ => {}
         }
 
