@@ -187,7 +187,17 @@ impl AddressingMode {
             Indirect => {
                 let ind_addr = cpu.fetch_byte(ram) as u16 + ((cpu.fetch_byte(ram) as u16) << 8);
                 let addr = cpu.read_byte(ram, ind_addr as usize) as u16
-                    + ((cpu.read_byte(ram, (ind_addr.wrapping_add(1)) as usize) as u16) << 8);
+                    + ((cpu.read_byte(
+                        ram,
+                        // http://www.obelisk.me.uk/6502/reference.html#JMP
+                        // An original 6502 has does not correctly fetch the target address if the indirect
+                        // vector falls on a page boundary (e.g. $xxFF where xx is any value from $00 to $FF).
+                        // In this case fetches the LSB from $xxFF as expected but takes the MSB from $xx00.
+                        // This is fixed in some later chips like the 65SC02 so for compatibility always ensure
+                        // the indirect vector is not at the end of the page.
+                        ((ind_addr & 0xFF00) + ((ind_addr as u8).wrapping_add(1)) as u16) as usize,
+                    ) as u16)
+                        << 8);
                 Some(addr)
             }
             IndexedIndirect => {
