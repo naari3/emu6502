@@ -72,6 +72,9 @@ pub enum Instruction {
     BRK,
     NOP,
     RTI,
+    //
+    // Unofficial
+    SKB,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -600,6 +603,9 @@ impl OpCode {
                     (cpu.pull_from_stack(ram) as u16) + ((cpu.pull_from_stack(ram) as u16) << 8);
                 cpu.remain_cycles -= 1;
             }
+            SKB => {
+                adr_mode.fetch(cpu, ram).unwrap();
+            }
         }
     }
 
@@ -932,16 +938,16 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x7D */ Some(OpCode(ADC, AbsoluteX, Official)),
     /* 0x7E */ Some(OpCode(ROR, AbsoluteX, Official)),
     /* 0x7F */ None,
-    /* 0x80 */ None,
+    /* 0x80 */ Some(OpCode(SKB, Immediate, Unofficial)),
     /* 0x81 */ Some(OpCode(STA, IndexedIndirect, Official)),
-    /* 0x82 */ None,
+    /* 0x82 */ Some(OpCode(SKB, Immediate, Unofficial)),
     /* 0x83 */ None,
     /* 0x84 */ Some(OpCode(STY, ZeroPage, Official)),
     /* 0x85 */ Some(OpCode(STA, ZeroPage, Official)),
     /* 0x86 */ Some(OpCode(STX, ZeroPage, Official)),
     /* 0x87 */ None,
     /* 0x88 */ Some(OpCode(DEY, Implied, Official)),
-    /* 0x89 */ None,
+    /* 0x89 */ Some(OpCode(SKB, Immediate, Unofficial)),
     /* 0x8A */ Some(OpCode(TXA, Implied, Official)),
     /* 0x8B */ None,
     /* 0x8C */ Some(OpCode(STY, Absolute, Official)),
@@ -998,7 +1004,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0xBF */ None,
     /* 0xC0 */ Some(OpCode(CPY, Immediate, Official)),
     /* 0xC1 */ Some(OpCode(CMP, IndexedIndirect, Official)),
-    /* 0xC2 */ None,
+    /* 0xC2 */ Some(OpCode(SKB, Immediate, Unofficial)),
     /* 0xC3 */ None,
     /* 0xC4 */ Some(OpCode(CPY, ZeroPage, Official)),
     /* 0xC5 */ Some(OpCode(CMP, ZeroPage, Official)),
@@ -1030,7 +1036,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0xDF */ None,
     /* 0xE0 */ Some(OpCode(CPX, Immediate, Official)),
     /* 0xE1 */ Some(OpCode(SBC, IndexedIndirect, Official)),
-    /* 0xE2 */ None,
+    /* 0xE2 */ Some(OpCode(SKB, Immediate, Unofficial)),
     /* 0xE3 */ None,
     /* 0xE4 */ Some(OpCode(CPX, ZeroPage, Official)),
     /* 0xE5 */ Some(OpCode(SBC, ZeroPage, Official)),
@@ -2242,5 +2248,13 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         OpCode(Instruction::NOP, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
+    }
+
+    #[test]
+    fn test_skb() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+
+        OpCode(Instruction::SKB, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
     }
 }
