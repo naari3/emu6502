@@ -607,7 +607,8 @@ impl OpCode {
     }
 
     #[cfg(not(feature = "logging"))]
-    pub fn log<T: MemIO>(&self, cpu: &mut CPU, mem: &mut T) -> String {
+    #[allow(dead_code)]
+    pub fn log<T: MemIO>(&self, _cpu: &mut CPU, _mem: &mut T) -> String {
         "".to_string()
     }
 

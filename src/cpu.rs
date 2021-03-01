@@ -148,7 +148,7 @@ impl CPU {
     }
 
     #[cfg(not(feature = "logging"))]
-    fn log<T: MemIO>(&mut self, op: &OpCode, ram: &mut T) -> String {
+    fn log<T: MemIO>(&mut self, _op: &OpCode, _ram: &mut T) -> String {
         "".to_string()
     }
 
