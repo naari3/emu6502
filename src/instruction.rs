@@ -93,7 +93,7 @@ pub enum AddressingMode {
 
 impl AddressingMode {
     fn fetch<T: MemIO>(&self, cpu: &mut CPU, ram: &mut T) -> Option<u8> {
-        let byte = match self {
+        match self {
             Accumulator => Some(cpu.a),
             Immediate => Some(cpu.fetch_byte(ram)),
             ZeroPage => {
@@ -142,23 +142,12 @@ impl AddressingMode {
                 }
                 Some(cpu.read_byte(ram, addr as usize))
             }
-            Implied => panic!("You can't call fetch from {:?}!", self),
-            Relative => panic!("You can't call fetch from {:?}!", self),
-            Indirect => panic!("You can't call fetch from {:?}!", self),
-        };
-        // if cpu.debug {
-        //     match byte {
-        //         Some(b) => {
-        //             println!("fetch: 0x{:02X}", b);
-        //         }
-        //         None => {}
-        //     }
-        // }
-        byte
+            Implied | Relative | Indirect => panic!("You can't call fetch from {:?}!", self),
+        }
     }
 
     fn get_address<T: MemIO>(&self, cpu: &mut CPU, ram: &mut T) -> Option<u16> {
-        let addr = match self {
+        match self {
             ZeroPage => Some(cpu.fetch_byte(ram).into()),
             ZeroPageX => {
                 cpu.remain_cycles += 1; // may be consumed by add x
@@ -214,19 +203,10 @@ impl AddressingMode {
                     .wrapping_add(cpu.y as u16);
                 Some(addr)
             }
-            Accumulator => panic!("You can't call get_address from {:?}!", self),
-            Implied => panic!("You can't call get_address from {:?}!", self),
-            Immediate => panic!("You can't call get_address from {:?}!", self),
-        };
-        // if cpu.debug {
-        //     match addr {
-        //         Some(a) => {
-        //             println!("addr: 0x{:04X}", a);
-        //         }
-        //         None => {}
-        //     }
-        // }
-        addr
+            Accumulator | Implied | Immediate => {
+                panic!("You can't call get_address from {:?}!", self)
+            }
+        }
     }
 }
 
