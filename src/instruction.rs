@@ -638,7 +638,7 @@ impl OpCode {
             bytes.push(mem.read_byte((cpu.pc + i) as usize));
         }
 
-        let (mut addr_str, _addr) = match adr_mode {
+        let (mut addr_str, addr) = match adr_mode {
             Implied => ("".to_string(), None),
             Accumulator => ("A".to_string(), None),
             Immediate => (format!("#${:02X}", bytes[0]), Some(bytes[0] as u16)),
@@ -691,10 +691,34 @@ impl OpCode {
             }
         };
         match ins {
-            STA => addr_str = format!("{:} = {:02X}", addr_str, cpu.a),
-            STX => addr_str = format!("{:} = {:02X}", addr_str, cpu.x),
-            STY => addr_str = format!("{:} = {:02X}", addr_str, cpu.y),
-            BIT => addr_str = format!("{:} = {:02X}", addr_str, cpu.a),
+            STA => {
+                addr_str = format!(
+                    "{:} = {:02X}",
+                    addr_str,
+                    mem.read_byte(addr.unwrap() as usize)
+                )
+            }
+            STX => {
+                addr_str = format!(
+                    "{:} = {:02X}",
+                    addr_str,
+                    mem.read_byte(addr.unwrap() as usize)
+                )
+            }
+            STY => {
+                addr_str = format!(
+                    "{:} = {:02X}",
+                    addr_str,
+                    mem.read_byte(addr.unwrap() as usize)
+                )
+            }
+            BIT => {
+                addr_str = format!(
+                    "{:} = {:02X}",
+                    addr_str,
+                    mem.read_byte(addr.unwrap() as usize)
+                )
+            }
             _ => {}
         }
 
