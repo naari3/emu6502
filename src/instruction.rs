@@ -91,6 +91,13 @@ pub enum AddressingMode {
     IndirectIndexed,
 }
 
+// has official instruction or not
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Officiality {
+    Official,
+    Unofficial,
+}
+
 impl AddressingMode {
     fn fetch<T: MemIO>(&self, cpu: &mut CPU, ram: &mut T) -> Option<u8> {
         match self {
@@ -211,7 +218,7 @@ impl AddressingMode {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct OpCode(pub Instruction, pub AddressingMode);
+pub struct OpCode(pub Instruction, pub AddressingMode, Officiality);
 
 impl OpCode {
     pub fn execute<T: MemIO>(&self, cpu: &mut CPU, ram: &mut T) {
@@ -795,263 +802,264 @@ impl OpCode {
 
 use AddressingMode::*;
 use Instruction::*;
+use Officiality::*;
 pub const OPCODES: [Option<OpCode>; 0x100] = [
-    Some(OpCode(BRK, Implied)),         // $00    BRK	       Implied
-    Some(OpCode(ORA, IndexedIndirect)), // $01    ORA ($NN,X)  IndexedIndirect
-    None,                               // $02
-    None,                               // $03
-    None,                               // $04
-    Some(OpCode(ORA, ZeroPage)),        // $05    ORA $NN      ZeroPage
-    Some(OpCode(ASL, ZeroPage)),        // $06    ASL $NN      ZeroPage
-    None,                               // $07
-    Some(OpCode(PHP, Implied)),         // $08    PHP          Implied
-    Some(OpCode(ORA, Immediate)),       // $09    ORA #$NN     Immediate
-    Some(OpCode(ASL, Accumulator)),     // $0A    ASL A        Accumulator
-    None,                               // $0B
-    None,                               // $0C
-    Some(OpCode(ORA, Absolute)),        // $0D    ORA $NNNN    Absolute
-    Some(OpCode(ASL, Absolute)),        // $0E    ASL $NNNN    Absolute
-    None,                               // $0F
-    Some(OpCode(BPL, Relative)),        // $10    BPL $NN      Relative
-    Some(OpCode(ORA, IndirectIndexed)), // $11    ORA ($NN),Y  IndirectIndexed
-    None,                               // $12
-    None,                               // $13
-    None,                               // $14
-    Some(OpCode(ORA, ZeroPageX)),       // $15    ORA $NN,X    ZeroPageX
-    Some(OpCode(ASL, ZeroPageX)),       // $16    ASL $NN,X    ZeroPageX
-    None,                               // $17
-    Some(OpCode(CLC, Implied)),         // $18    CLC          Implied
-    Some(OpCode(ORA, AbsoluteY)),       // $19    ORA $NNNN,Y  AbsoluteY
-    Some(OpCode(NOP, Implied)),         // $1A    NOP          Implied (Unofficial)
-    None,                               // $1B
-    None,                               // $1C
-    Some(OpCode(ORA, AbsoluteX)),       // $1D    ORA $NNNN,X  AbsoluteX
-    Some(OpCode(ASL, AbsoluteX)),       // $1E    ASL $NNNN,X  AbsoluteX
-    None,                               // $1F
-    Some(OpCode(JSR, Absolute)),        // $20    JSR $NNNN    Absolute
-    Some(OpCode(AND, IndexedIndirect)), // $21    AND ($NN,X)  IndexedIndirect
-    None,                               // $22
-    None,                               // $23
-    Some(OpCode(BIT, ZeroPage)),        // $24    BIT $NN      ZeroPage
-    Some(OpCode(AND, ZeroPage)),        // $25    AND $NN      ZeroPage
-    Some(OpCode(ROL, ZeroPage)),        // $26    ROL $NN      ZeroPage
-    None,                               // $27
-    Some(OpCode(PLP, Implied)),         // $28    PLP          Implied
-    Some(OpCode(AND, Immediate)),       // $29    AND #$NN     Immediate
-    Some(OpCode(ROL, Accumulator)),     // $2A    ROL A        Accumulator
-    None,                               // $2B
-    Some(OpCode(BIT, Absolute)),        // $2C    BIT $NNNN    Absolute
-    Some(OpCode(AND, Absolute)),        // $2D    AND $NNNN    Absolute
-    Some(OpCode(ROL, Absolute)),        // $2E    ROL $NNNN    Absolute
-    None,                               // $2F
-    Some(OpCode(BMI, Relative)),        // $30    BMI $NN      Relative
-    Some(OpCode(AND, IndirectIndexed)), // $31    AND ($NN),Y  IndirectIndexed
-    None,                               // $32
-    None,                               // $33
-    None,                               // $34
-    Some(OpCode(AND, ZeroPageX)),       // $35    AND $NN,X    ZeroPageX
-    Some(OpCode(ROL, ZeroPageX)),       // $36    ROL $NN,X    ZeroPageX
-    None,                               // $37
-    Some(OpCode(SEC, Implied)),         // $38    SEC          Implied
-    Some(OpCode(AND, AbsoluteY)),       // $39    AND $NNNN,Y  AbsoluteY
-    Some(OpCode(NOP, Implied)),         // $3A    NOP          Implied (Unofficial)
-    None,                               // $3B
-    None,                               // $3C
-    Some(OpCode(AND, AbsoluteX)),       // $3D    AND $NNNN,X  AbsoluteX
-    Some(OpCode(ROL, AbsoluteX)),       // $3E    ROL $NNNN,X  AbsoluteX
-    None,                               // $3F
-    Some(OpCode(RTI, Implied)),         // $40    RTI          Implied
-    Some(OpCode(EOR, IndexedIndirect)), // $41    EOR ($NN,X)  IndexedIndirect
-    None,                               // $42
-    None,                               // $43
-    None,                               // $44
-    Some(OpCode(EOR, ZeroPage)),        // $45    EOR $NN      ZeroPage
-    Some(OpCode(LSR, ZeroPage)),        // $46    LSR $NN      ZeroPage
-    None,                               // $47
-    Some(OpCode(PHA, Implied)),         // $48    PHA          Implied
-    Some(OpCode(EOR, Immediate)),       // $49    EOR #$NN     Immediate
-    Some(OpCode(LSR, Accumulator)),     // $4A    LSR A        Accumulator
-    None,                               // $4B
-    Some(OpCode(JMP, Absolute)),        // $4C    JMP $NNNN    Absolute
-    Some(OpCode(EOR, Absolute)),        // $4D    EOR $NNNN    Absolute
-    Some(OpCode(LSR, Absolute)),        // $4E    LSR $NNNN    Absolute
-    None,                               // $4F
-    Some(OpCode(BVC, Relative)),        // $50    BVC $NN      Relative
-    Some(OpCode(EOR, IndirectIndexed)), // $51    EOR ($NN),Y  IndirectIndexed
-    None,                               // $52
-    None,                               // $53
-    None,                               // $54
-    Some(OpCode(EOR, ZeroPageX)),       // $55    EOR $NN,X    ZeroPageX
-    Some(OpCode(LSR, ZeroPageX)),       // $56    LSR $NN,X    ZeroPageX
-    None,                               // $57
-    Some(OpCode(CLI, Implied)),         // $58    CLI          Implied
-    Some(OpCode(EOR, AbsoluteY)),       // $59    EOR $NNNN,Y  AbsoluteY
-    Some(OpCode(NOP, Implied)),         // $5A    NOP          Implied (Unofficial)
-    None,                               // $5B
-    None,                               // $5C
-    Some(OpCode(EOR, AbsoluteX)),       // $5D    EOR $NNNN,X  AbsoluteX
-    Some(OpCode(LSR, AbsoluteX)),       // $5E    LSR $NNNN,X  AbsoluteX
-    None,                               // $5F
-    Some(OpCode(RTS, Implied)),         // $60    RTS          Implied
-    Some(OpCode(ADC, IndexedIndirect)), // $61    ADC ($NN,X)  IndexedIndirect
-    None,                               // $62
-    None,                               // $63
-    None,                               // $64
-    Some(OpCode(ADC, ZeroPage)),        // $65    ADC $NN      ZeroPage
-    Some(OpCode(ROR, ZeroPage)),        // $66    ROR $NN      ZeroPage
-    None,                               // $67
-    Some(OpCode(PLA, Implied)),         // $68    PLA          Implied
-    Some(OpCode(ADC, Immediate)),       // $69    ADC #$NN     Immediate
-    Some(OpCode(ROR, Accumulator)),     // $6A    ROR A        Accumulator
-    None,                               // $6B
-    Some(OpCode(JMP, Indirect)),        // $6C    JMP $NN      Indirect
-    Some(OpCode(ADC, Absolute)),        // $6D    ADC $NNNN    Absolute
-    Some(OpCode(ROR, Absolute)),        // $6E    ROR $NNNN,X  Absolute
-    None,                               // $6F
-    Some(OpCode(BVS, Relative)),        // $70    BVS $NN      Relative
-    Some(OpCode(ADC, IndirectIndexed)), // $71    ADC ($NN),Y  IndirectIndexed
-    None,                               // $72
-    None,                               // $73
-    None,                               // $74
-    Some(OpCode(ADC, ZeroPageX)),       // $75    ADC $NN,X    ZeroPageX
-    Some(OpCode(ROR, ZeroPageX)),       // $76    ROR $NN,X    ZeroPageX
-    None,                               // $77
-    Some(OpCode(SEI, Implied)),         // $78    SEI          Implied
-    Some(OpCode(ADC, AbsoluteY)),       // $79    ADC $NNNN,Y  AbsoluteY
-    Some(OpCode(NOP, Implied)),         // $7A    NOP          Implied (Unofficial)
-    None,                               // $7B
-    None,                               // $7C
-    Some(OpCode(ADC, AbsoluteX)),       // $7D    ADC $NNNN,X  AbsoluteX
-    Some(OpCode(ROR, AbsoluteX)),       // $7E    ROR $NNNN    AbsoluteX
-    None,                               // $7F
-    None,                               // $80
-    Some(OpCode(STA, IndexedIndirect)), // $81    STA ($NN,X)  IndexedIndirect
-    None,                               // $82
-    None,                               // $83
-    Some(OpCode(STY, ZeroPage)),        // $84    STY $NN      ZeroPage
-    Some(OpCode(STA, ZeroPage)),        // $85    STA $NN      ZeroPage
-    Some(OpCode(STX, ZeroPage)),        // $86    STX $NN      ZeroPage
-    None,                               // $87
-    Some(OpCode(DEY, Implied)),         // $88    DEY          Implied
-    None,                               // $89
-    Some(OpCode(TXA, Implied)),         // $8A    TXA          Implied
-    None,                               // $8B
-    Some(OpCode(STY, Absolute)),        // $8C    STY $NNNN    Absolute
-    Some(OpCode(STA, Absolute)),        // $8D    STA $NNNN    Absolute
-    Some(OpCode(STX, Absolute)),        // $8E    STX $NNNN    Absolute
-    None,                               // $8F
-    Some(OpCode(BCC, Relative)),        // $90    BCC $NN      Relative
-    Some(OpCode(STA, IndirectIndexed)), // $91    STA ($NN),Y  IndirectIndexed
-    None,                               // $92
-    None,                               // $93
-    Some(OpCode(STY, ZeroPageX)),       // $94    STY $NN,X    ZeroPageX
-    Some(OpCode(STA, ZeroPageX)),       // $95    STA $NN,X    ZeroPageX
-    Some(OpCode(STX, ZeroPageY)),       // $96    STX $NN,Y    ZeroPageY
-    None,                               // $97
-    Some(OpCode(TYA, Implied)),         // $98    TYA          Implied
-    Some(OpCode(STA, AbsoluteY)),       // $99    STA $NNNN,Y  AbsoluteY
-    Some(OpCode(TXS, Implied)),         // $9A    TXS          Implied
-    None,                               // $9B
-    None,                               // $9C
-    Some(OpCode(STA, AbsoluteX)),       // $9D    STA $NNNN,X  AbsoluteX
-    None,                               // $9E
-    None,                               // $9F
-    Some(OpCode(LDY, Immediate)),       // $A0    LDY #$NN     Immediate
-    Some(OpCode(LDA, IndexedIndirect)), // $A1    LDA ($NN,X)  IndexedIndirect
-    Some(OpCode(LDX, Immediate)),       // $A2    LDX #$NN     Immediate
-    None,                               // $A3
-    Some(OpCode(LDY, ZeroPage)),        // $A4    LDY $NN      ZeroPage
-    Some(OpCode(LDA, ZeroPage)),        // $A5    LDA $NN      ZeroPage
-    Some(OpCode(LDX, ZeroPage)),        // $A6    LDX $NN      ZeroPage
-    None,                               // $A7
-    Some(OpCode(TAY, Implied)),         // $A8    TAY          Implied
-    Some(OpCode(LDA, Immediate)),       // $A9    LDA #$NN     Immediate
-    Some(OpCode(TAX, Implied)),         // $AA    TAX          Implied
-    None,                               // $AB
-    Some(OpCode(LDY, Absolute)),        // $AC    LDY $NNNN    Absolute
-    Some(OpCode(LDA, Absolute)),        // $AD    LDA $NNNN    Absolute
-    Some(OpCode(LDX, Absolute)),        // $AE    LDX $NNNN    Absolute
-    None,                               // $AF
-    Some(OpCode(BCS, Relative)),        // $B0    BCS $NN      Relative
-    Some(OpCode(LDA, IndirectIndexed)), // $B1    LDA ($NN),Y  IndirectIndexed
-    None,                               // $B2
-    None,                               // $B3
-    Some(OpCode(LDY, ZeroPageX)),       // $B4    LDY $NN,X    ZeroPageX
-    Some(OpCode(LDA, ZeroPageX)),       // $B5    LDA $NN,X    ZeroPageX
-    Some(OpCode(LDX, ZeroPageY)),       // $B6    LDX $NN,Y    ZeroPageY
-    None,                               // $B7
-    Some(OpCode(CLV, Implied)),         // $B8    CLV          Implied
-    Some(OpCode(LDA, AbsoluteY)),       // $B9    LDA $NNNN,Y  AbsoluteY
-    Some(OpCode(TSX, Implied)),         // $BA    TSX          Implied
-    None,                               // $BB
-    Some(OpCode(LDY, AbsoluteX)),       // $BC    LDY $NNNN,X  AbsoluteX
-    Some(OpCode(LDA, AbsoluteX)),       // $BD    LDA $NNNN,X  AbsoluteX
-    Some(OpCode(LDX, AbsoluteY)),       // $BE    LDX $NNNN,Y  AbsoluteY
-    None,                               // $BF
-    Some(OpCode(CPY, Immediate)),       // $C0    CPY #$NN     Immediate
-    Some(OpCode(CMP, IndexedIndirect)), // $C1    CMP ($NN,X)  IndexedIndirect
-    None,                               // $C2
-    None,                               // $C3
-    Some(OpCode(CPY, ZeroPage)),        // $C4    CPY $NN      ZeroPage
-    Some(OpCode(CMP, ZeroPage)),        // $C5    CMP $NN      ZeroPage
-    Some(OpCode(DEC, ZeroPage)),        // $C6    DEC $NN      ZeroPage
-    None,                               // $C7
-    Some(OpCode(INY, Implied)),         // $C8    INY          Implied
-    Some(OpCode(CMP, Immediate)),       // $C9    CMP #$NN     Immediate
-    Some(OpCode(DEX, Implied)),         // $CA    DEX          Implied
-    None,                               // $CB
-    Some(OpCode(CPY, Absolute)),        // $CC    CPY $NNNN    Absolute
-    Some(OpCode(CMP, Absolute)),        // $CD    CMP $NNNN    Absolute
-    Some(OpCode(DEC, Absolute)),        // $CE    DEC $NNNN    Absolute
-    None,                               // $CF
-    Some(OpCode(BNE, Relative)),        // $D0    BNE $NN      Relative
-    Some(OpCode(CMP, IndirectIndexed)), // $D1    CMP ($NN),Y  IndirectIndexed
-    None,                               // $D2
-    None,                               // $D3
-    None,                               // $D4
-    Some(OpCode(CMP, ZeroPageX)),       // $D5    CMP $NN,X    ZeroPageX
-    Some(OpCode(DEC, ZeroPageX)),       // $D6    DEC $NN,X    ZeroPageX
-    None,                               // $D7
-    Some(OpCode(CLD, Implied)),         // $D8    CLD          Implied
-    Some(OpCode(CMP, AbsoluteY)),       // $D9    CMP $NNNN,Y  AbsoluteY
-    Some(OpCode(NOP, Implied)),         // $DA    NOP          Implied (Unofficial)
-    None,                               // $DB
-    None,                               // $DC
-    Some(OpCode(CMP, AbsoluteX)),       // $DD    CMP $NNNN,X  AbsoluteX
-    Some(OpCode(DEC, AbsoluteX)),       // $DE    DEC $NNNN,X  AbsoluteX
-    None,                               // $DF
-    Some(OpCode(CPX, Immediate)),       // $E0    CPX #$NN     Immediate
-    Some(OpCode(SBC, IndexedIndirect)), // $E1    SBC ($NN,X)  IndexedIndirect
-    None,                               // $E2
-    None,                               // $E3
-    Some(OpCode(CPX, ZeroPage)),        // $E4    CPX $NN      ZeroPage
-    Some(OpCode(SBC, ZeroPage)),        // $E5    SBC $NN      ZeroPage
-    Some(OpCode(INC, ZeroPage)),        // $E6    INC $NN      ZeroPage
-    None,                               // $E7
-    Some(OpCode(INX, Implied)),         // $E8    INX          Implied
-    Some(OpCode(SBC, Immediate)),       // $E9    SBC #$NN     Immediate
-    Some(OpCode(NOP, Implied)),         // $EA    NOP          Implied
-    None,                               // $EB
-    Some(OpCode(CPX, Absolute)),        // $EC    CPX $NNNN    Absolute
-    Some(OpCode(SBC, Absolute)),        // $ED    SBC $NNNN    Absolute
-    Some(OpCode(INC, Absolute)),        // $EE    INC $NNNN    Absolute
-    None,                               // $EF
-    Some(OpCode(BEQ, Relative)),        // $F0    BEQ $NN      Relative
-    Some(OpCode(SBC, IndirectIndexed)), // $F1    SBC ($NN),Y  IndirectIndexed
-    None,                               // $F2
-    None,                               // $F3
-    None,                               // $F4
-    Some(OpCode(SBC, ZeroPageX)),       // $F5    SBC $NN,X    ZeroPageX
-    Some(OpCode(INC, ZeroPageX)),       // $F6    INC $NN,X    ZeroPageX
-    None,                               // $F7
-    Some(OpCode(SED, Implied)),         // $F8    SED          Implied
-    Some(OpCode(SBC, AbsoluteY)),       // $F9    SBC $NNNN,Y  AbsoluteY
-    Some(OpCode(NOP, Implied)),         // $FA    NOP          Implied (Unofficial)
-    None,                               // $FB
-    None,                               // $FC
-    Some(OpCode(SBC, AbsoluteX)),       // $FD    SBC $NNNN,X  AbsoluteX
-    Some(OpCode(INC, AbsoluteX)),       // $FE    INC $NNNN,X  AbsoluteX
-    None,                               // $FF
+    /* 0x00 */ Some(OpCode(BRK, Implied, Official)),
+    /* 0x01 */ Some(OpCode(ORA, IndexedIndirect, Official)),
+    /* 0x02 */ None,
+    /* 0x03 */ None,
+    /* 0x04 */ None,
+    /* 0x05 */ Some(OpCode(ORA, ZeroPage, Official)),
+    /* 0x06 */ Some(OpCode(ASL, ZeroPage, Official)),
+    /* 0x07 */ None,
+    /* 0x08 */ Some(OpCode(PHP, Implied, Official)),
+    /* 0x09 */ Some(OpCode(ORA, Immediate, Official)),
+    /* 0x0A */ Some(OpCode(ASL, Accumulator, Official)),
+    /* 0x0B */ None,
+    /* 0x0C */ None,
+    /* 0x0D */ Some(OpCode(ORA, Absolute, Official)),
+    /* 0x0E */ Some(OpCode(ASL, Absolute, Official)),
+    /* 0x0F */ None,
+    /* 0x10 */ Some(OpCode(BPL, Relative, Official)),
+    /* 0x11 */ Some(OpCode(ORA, IndirectIndexed, Official)),
+    /* 0x12 */ None,
+    /* 0x13 */ None,
+    /* 0x14 */ None,
+    /* 0x15 */ Some(OpCode(ORA, ZeroPageX, Official)),
+    /* 0x16 */ Some(OpCode(ASL, ZeroPageX, Official)),
+    /* 0x17 */ None,
+    /* 0x18 */ Some(OpCode(CLC, Implied, Official)),
+    /* 0x19 */ Some(OpCode(ORA, AbsoluteY, Official)),
+    /* 0x1A */ Some(OpCode(NOP, Implied, Official)),
+    /* 0x1B */ None,
+    /* 0x1C */ None,
+    /* 0x1D */ Some(OpCode(ORA, AbsoluteX, Official)),
+    /* 0x1E */ Some(OpCode(ASL, AbsoluteX, Official)),
+    /* 0x1F */ None,
+    /* 0x20 */ Some(OpCode(JSR, Absolute, Official)),
+    /* 0x21 */ Some(OpCode(AND, IndexedIndirect, Official)),
+    /* 0x22 */ None,
+    /* 0x23 */ None,
+    /* 0x24 */ Some(OpCode(BIT, ZeroPage, Official)),
+    /* 0x25 */ Some(OpCode(AND, ZeroPage, Official)),
+    /* 0x26 */ Some(OpCode(ROL, ZeroPage, Official)),
+    /* 0x27 */ None,
+    /* 0x28 */ Some(OpCode(PLP, Implied, Official)),
+    /* 0x29 */ Some(OpCode(AND, Immediate, Official)),
+    /* 0x2A */ Some(OpCode(ROL, Accumulator, Official)),
+    /* 0x2B */ None,
+    /* 0x2C */ Some(OpCode(BIT, Absolute, Official)),
+    /* 0x2D */ Some(OpCode(AND, Absolute, Official)),
+    /* 0x2E */ Some(OpCode(ROL, Absolute, Official)),
+    /* 0x2F */ None,
+    /* 0x30 */ Some(OpCode(BMI, Relative, Official)),
+    /* 0x31 */ Some(OpCode(AND, IndirectIndexed, Official)),
+    /* 0x32 */ None,
+    /* 0x33 */ None,
+    /* 0x34 */ None,
+    /* 0x35 */ Some(OpCode(AND, ZeroPageX, Official)),
+    /* 0x36 */ Some(OpCode(ROL, ZeroPageX, Official)),
+    /* 0x37 */ None,
+    /* 0x38 */ Some(OpCode(SEC, Implied, Official)),
+    /* 0x39 */ Some(OpCode(AND, AbsoluteY, Official)),
+    /* 0x3A */ Some(OpCode(NOP, Implied, Official)),
+    /* 0x3B */ None,
+    /* 0x3C */ None,
+    /* 0x3D */ Some(OpCode(AND, AbsoluteX, Official)),
+    /* 0x3E */ Some(OpCode(ROL, AbsoluteX, Official)),
+    /* 0x3F */ None,
+    /* 0x40 */ Some(OpCode(RTI, Implied, Official)),
+    /* 0x41 */ Some(OpCode(EOR, IndexedIndirect, Official)),
+    /* 0x42 */ None,
+    /* 0x43 */ None,
+    /* 0x44 */ None,
+    /* 0x45 */ Some(OpCode(EOR, ZeroPage, Official)),
+    /* 0x46 */ Some(OpCode(LSR, ZeroPage, Official)),
+    /* 0x47 */ None,
+    /* 0x48 */ Some(OpCode(PHA, Implied, Official)),
+    /* 0x49 */ Some(OpCode(EOR, Immediate, Official)),
+    /* 0x4A */ Some(OpCode(LSR, Accumulator, Official)),
+    /* 0x4B */ None,
+    /* 0x4C */ Some(OpCode(JMP, Absolute, Official)),
+    /* 0x4D */ Some(OpCode(EOR, Absolute, Official)),
+    /* 0x4E */ Some(OpCode(LSR, Absolute, Official)),
+    /* 0x4F */ None,
+    /* 0x50 */ Some(OpCode(BVC, Relative, Official)),
+    /* 0x51 */ Some(OpCode(EOR, IndirectIndexed, Official)),
+    /* 0x52 */ None,
+    /* 0x53 */ None,
+    /* 0x54 */ None,
+    /* 0x55 */ Some(OpCode(EOR, ZeroPageX, Official)),
+    /* 0x56 */ Some(OpCode(LSR, ZeroPageX, Official)),
+    /* 0x57 */ None,
+    /* 0x58 */ Some(OpCode(CLI, Implied, Official)),
+    /* 0x59 */ Some(OpCode(EOR, AbsoluteY, Official)),
+    /* 0x5A */ Some(OpCode(NOP, Implied, Official)),
+    /* 0x5B */ None,
+    /* 0x5C */ None,
+    /* 0x5D */ Some(OpCode(EOR, AbsoluteX, Official)),
+    /* 0x5E */ Some(OpCode(LSR, AbsoluteX, Official)),
+    /* 0x5F */ None,
+    /* 0x60 */ Some(OpCode(RTS, Implied, Official)),
+    /* 0x61 */ Some(OpCode(ADC, IndexedIndirect, Official)),
+    /* 0x62 */ None,
+    /* 0x63 */ None,
+    /* 0x64 */ None,
+    /* 0x65 */ Some(OpCode(ADC, ZeroPage, Official)),
+    /* 0x66 */ Some(OpCode(ROR, ZeroPage, Official)),
+    /* 0x67 */ None,
+    /* 0x68 */ Some(OpCode(PLA, Implied, Official)),
+    /* 0x69 */ Some(OpCode(ADC, Immediate, Official)),
+    /* 0x6A */ Some(OpCode(ROR, Accumulator, Official)),
+    /* 0x6B */ None,
+    /* 0x6C */ Some(OpCode(JMP, Indirect, Official)),
+    /* 0x6D */ Some(OpCode(ADC, Absolute, Official)),
+    /* 0x6E */ Some(OpCode(ROR, Absolute, Official)),
+    /* 0x6F */ None,
+    /* 0x70 */ Some(OpCode(BVS, Relative, Official)),
+    /* 0x71 */ Some(OpCode(ADC, IndirectIndexed, Official)),
+    /* 0x72 */ None,
+    /* 0x73 */ None,
+    /* 0x74 */ None,
+    /* 0x75 */ Some(OpCode(ADC, ZeroPageX, Official)),
+    /* 0x76 */ Some(OpCode(ROR, ZeroPageX, Official)),
+    /* 0x77 */ None,
+    /* 0x78 */ Some(OpCode(SEI, Implied, Official)),
+    /* 0x79 */ Some(OpCode(ADC, AbsoluteY, Official)),
+    /* 0x7A */ Some(OpCode(NOP, Implied, Official)),
+    /* 0x7B */ None,
+    /* 0x7C */ None,
+    /* 0x7D */ Some(OpCode(ADC, AbsoluteX, Official)),
+    /* 0x7E */ Some(OpCode(ROR, AbsoluteX, Official)),
+    /* 0x7F */ None,
+    /* 0x80 */ None,
+    /* 0x81 */ Some(OpCode(STA, IndexedIndirect, Official)),
+    /* 0x82 */ None,
+    /* 0x83 */ None,
+    /* 0x84 */ Some(OpCode(STY, ZeroPage, Official)),
+    /* 0x85 */ Some(OpCode(STA, ZeroPage, Official)),
+    /* 0x86 */ Some(OpCode(STX, ZeroPage, Official)),
+    /* 0x87 */ None,
+    /* 0x88 */ Some(OpCode(DEY, Implied, Official)),
+    /* 0x89 */ None,
+    /* 0x8A */ Some(OpCode(TXA, Implied, Official)),
+    /* 0x8B */ None,
+    /* 0x8C */ Some(OpCode(STY, Absolute, Official)),
+    /* 0x8D */ Some(OpCode(STA, Absolute, Official)),
+    /* 0x8E */ Some(OpCode(STX, Absolute, Official)),
+    /* 0x8F */ None,
+    /* 0x90 */ Some(OpCode(BCC, Relative, Official)),
+    /* 0x91 */ Some(OpCode(STA, IndirectIndexed, Official)),
+    /* 0x92 */ None,
+    /* 0x93 */ None,
+    /* 0x94 */ Some(OpCode(STY, ZeroPageX, Official)),
+    /* 0x95 */ Some(OpCode(STA, ZeroPageX, Official)),
+    /* 0x96 */ Some(OpCode(STX, ZeroPageY, Official)),
+    /* 0x97 */ None,
+    /* 0x98 */ Some(OpCode(TYA, Implied, Official)),
+    /* 0x99 */ Some(OpCode(STA, AbsoluteY, Official)),
+    /* 0x9A */ Some(OpCode(TXS, Implied, Official)),
+    /* 0x9B */ None,
+    /* 0x9C */ None,
+    /* 0x9D */ Some(OpCode(STA, AbsoluteX, Official)),
+    /* 0x9E */ None,
+    /* 0x9F */ None,
+    /* 0xA0 */ Some(OpCode(LDY, Immediate, Official)),
+    /* 0xA1 */ Some(OpCode(LDA, IndexedIndirect, Official)),
+    /* 0xA2 */ Some(OpCode(LDX, Immediate, Official)),
+    /* 0xA3 */ None,
+    /* 0xA4 */ Some(OpCode(LDY, ZeroPage, Official)),
+    /* 0xA5 */ Some(OpCode(LDA, ZeroPage, Official)),
+    /* 0xA6 */ Some(OpCode(LDX, ZeroPage, Official)),
+    /* 0xA7 */ None,
+    /* 0xA8 */ Some(OpCode(TAY, Implied, Official)),
+    /* 0xA9 */ Some(OpCode(LDA, Immediate, Official)),
+    /* 0xAA */ Some(OpCode(TAX, Implied, Official)),
+    /* 0xAB */ None,
+    /* 0xAC */ Some(OpCode(LDY, Absolute, Official)),
+    /* 0xAD */ Some(OpCode(LDA, Absolute, Official)),
+    /* 0xAE */ Some(OpCode(LDX, Absolute, Official)),
+    /* 0xAF */ None,
+    /* 0xB0 */ Some(OpCode(BCS, Relative, Official)),
+    /* 0xB1 */ Some(OpCode(LDA, IndirectIndexed, Official)),
+    /* 0xB2 */ None,
+    /* 0xB3 */ None,
+    /* 0xB4 */ Some(OpCode(LDY, ZeroPageX, Official)),
+    /* 0xB5 */ Some(OpCode(LDA, ZeroPageX, Official)),
+    /* 0xB6 */ Some(OpCode(LDX, ZeroPageY, Official)),
+    /* 0xB7 */ None,
+    /* 0xB8 */ Some(OpCode(CLV, Implied, Official)),
+    /* 0xB9 */ Some(OpCode(LDA, AbsoluteY, Official)),
+    /* 0xBA */ Some(OpCode(TSX, Implied, Official)),
+    /* 0xBB */ None,
+    /* 0xBC */ Some(OpCode(LDY, AbsoluteX, Official)),
+    /* 0xBD */ Some(OpCode(LDA, AbsoluteX, Official)),
+    /* 0xBE */ Some(OpCode(LDX, AbsoluteY, Official)),
+    /* 0xBF */ None,
+    /* 0xC0 */ Some(OpCode(CPY, Immediate, Official)),
+    /* 0xC1 */ Some(OpCode(CMP, IndexedIndirect, Official)),
+    /* 0xC2 */ None,
+    /* 0xC3 */ None,
+    /* 0xC4 */ Some(OpCode(CPY, ZeroPage, Official)),
+    /* 0xC5 */ Some(OpCode(CMP, ZeroPage, Official)),
+    /* 0xC6 */ Some(OpCode(DEC, ZeroPage, Official)),
+    /* 0xC7 */ None,
+    /* 0xC8 */ Some(OpCode(INY, Implied, Official)),
+    /* 0xC9 */ Some(OpCode(CMP, Immediate, Official)),
+    /* 0xCA */ Some(OpCode(DEX, Implied, Official)),
+    /* 0xCB */ None,
+    /* 0xCC */ Some(OpCode(CPY, Absolute, Official)),
+    /* 0xCD */ Some(OpCode(CMP, Absolute, Official)),
+    /* 0xCE */ Some(OpCode(DEC, Absolute, Official)),
+    /* 0xCF */ None,
+    /* 0xD0 */ Some(OpCode(BNE, Relative, Official)),
+    /* 0xD1 */ Some(OpCode(CMP, IndirectIndexed, Official)),
+    /* 0xD2 */ None,
+    /* 0xD3 */ None,
+    /* 0xD4 */ None,
+    /* 0xD5 */ Some(OpCode(CMP, ZeroPageX, Official)),
+    /* 0xD6 */ Some(OpCode(DEC, ZeroPageX, Official)),
+    /* 0xD7 */ None,
+    /* 0xD8 */ Some(OpCode(CLD, Implied, Official)),
+    /* 0xD9 */ Some(OpCode(CMP, AbsoluteY, Official)),
+    /* 0xDA */ Some(OpCode(NOP, Implied, Official)),
+    /* 0xDB */ None,
+    /* 0xDC */ None,
+    /* 0xDD */ Some(OpCode(CMP, AbsoluteX, Official)),
+    /* 0xDE */ Some(OpCode(DEC, AbsoluteX, Official)),
+    /* 0xDF */ None,
+    /* 0xE0 */ Some(OpCode(CPX, Immediate, Official)),
+    /* 0xE1 */ Some(OpCode(SBC, IndexedIndirect, Official)),
+    /* 0xE2 */ None,
+    /* 0xE3 */ None,
+    /* 0xE4 */ Some(OpCode(CPX, ZeroPage, Official)),
+    /* 0xE5 */ Some(OpCode(SBC, ZeroPage, Official)),
+    /* 0xE6 */ Some(OpCode(INC, ZeroPage, Official)),
+    /* 0xE7 */ None,
+    /* 0xE8 */ Some(OpCode(INX, Implied, Official)),
+    /* 0xE9 */ Some(OpCode(SBC, Immediate, Official)),
+    /* 0xEA */ Some(OpCode(NOP, Implied, Official)),
+    /* 0xEB */ None,
+    /* 0xEC */ Some(OpCode(CPX, Absolute, Official)),
+    /* 0xED */ Some(OpCode(SBC, Absolute, Official)),
+    /* 0xEE */ Some(OpCode(INC, Absolute, Official)),
+    /* 0xEF */ None,
+    /* 0xF0 */ Some(OpCode(BEQ, Relative, Official)),
+    /* 0xF1 */ Some(OpCode(SBC, IndirectIndexed, Official)),
+    /* 0xF2 */ None,
+    /* 0xF3 */ None,
+    /* 0xF4 */ None,
+    /* 0xF5 */ Some(OpCode(SBC, ZeroPageX, Official)),
+    /* 0xF6 */ Some(OpCode(INC, ZeroPageX, Official)),
+    /* 0xF7 */ None,
+    /* 0xF8 */ Some(OpCode(SED, Implied, Official)),
+    /* 0xF9 */ Some(OpCode(SBC, AbsoluteY, Official)),
+    /* 0xFA */ Some(OpCode(NOP, Implied, Official)),
+    /* 0xFB */ None,
+    /* 0xFC */ None,
+    /* 0xFD */ Some(OpCode(SBC, AbsoluteX, Official)),
+    /* 0xFE */ Some(OpCode(INC, AbsoluteX, Official)),
+    /* 0xFF */ None,
 ];
 
 #[cfg(test)]
@@ -1334,21 +1342,21 @@ mod test_instructions {
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0b10000010;
-        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LDA, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b10000010);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0;
-        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LDA, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 1;
-        OpCode(Instruction::LDA, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LDA, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 1);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
@@ -1361,21 +1369,21 @@ mod test_instructions {
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0b10000010;
-        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LDX, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0b10000010);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0;
-        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LDX, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 1;
-        OpCode(Instruction::LDX, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LDX, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 1);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
@@ -1388,21 +1396,21 @@ mod test_instructions {
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0b10000010;
-        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LDY, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0b10000010);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0;
-        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LDY, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 1;
-        OpCode(Instruction::LDY, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LDY, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 1);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
@@ -1416,7 +1424,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         cpu.a = 0x42;
         ram[0x8000] = 0x0;
-        OpCode(Instruction::STA, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::STA, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x0], 0x42);
     }
 
@@ -1428,7 +1436,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         cpu.x = 0x42;
         ram[0x8000] = 0x0;
-        OpCode(Instruction::STX, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::STX, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x0], 0x42);
     }
 
@@ -1440,7 +1448,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         cpu.y = 0x42;
         ram[0x8000] = 0x0;
-        OpCode(Instruction::STY, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::STY, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x0], 0x42);
     }
 
@@ -1451,7 +1459,7 @@ mod test_instructions {
 
         cpu.a = 0x42;
         cpu.x = 0;
-        OpCode(Instruction::TAX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::TAX, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0x42);
     }
 
@@ -1462,7 +1470,7 @@ mod test_instructions {
 
         cpu.a = 0x42;
         cpu.y = 0;
-        OpCode(Instruction::TAY, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::TAY, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0x42);
     }
 
@@ -1473,7 +1481,7 @@ mod test_instructions {
 
         cpu.x = 0x42;
         cpu.a = 0;
-        OpCode(Instruction::TXA, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::TXA, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0x42);
     }
 
@@ -1484,7 +1492,7 @@ mod test_instructions {
 
         cpu.y = 0x42;
         cpu.a = 0;
-        OpCode(Instruction::TYA, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::TYA, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0x42);
     }
 
@@ -1495,7 +1503,7 @@ mod test_instructions {
 
         cpu.sp = 0x42;
         cpu.x = 0;
-        OpCode(Instruction::TSX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::TSX, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0x42);
     }
 
@@ -1506,7 +1514,7 @@ mod test_instructions {
 
         cpu.x = 0x42;
         cpu.sp = 0;
-        OpCode(Instruction::TXS, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::TXS, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.sp, 0x42);
     }
 
@@ -1518,7 +1526,7 @@ mod test_instructions {
         cpu.sp = 0xFF;
         cpu.pc = 0x8000;
         cpu.a = 0x42;
-        OpCode(Instruction::PHA, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::PHA, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.sp, 0xFE);
         assert_eq!(ram[0x1FF], 0x42);
     }
@@ -1532,7 +1540,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         cpu.a = 0;
         ram[0x1FF] = 0x42;
-        OpCode(Instruction::PLA, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::PLA, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.sp, 0xFF);
         assert_eq!(cpu.a, 0x42);
     }
@@ -1546,7 +1554,7 @@ mod test_instructions {
         cpu.flags.c = true;
         cpu.flags.r = true;
 
-        OpCode(Instruction::PHP, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::PHP, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.sp, 0xFE);
         assert_eq!(ram[0x1FF], 0b00100001);
     }
@@ -1561,7 +1569,7 @@ mod test_instructions {
         cpu.flags.r = false;
         ram[0x1FF] = 0b00100001;
 
-        OpCode(Instruction::PLP, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::PLP, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.sp, 0xFF);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.r, true);
@@ -1576,7 +1584,7 @@ mod test_instructions {
         cpu.a = 0b00011000;
         ram[0x8000] = 0b00001111;
 
-        OpCode(Instruction::AND, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::AND, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b00001000);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
@@ -1591,7 +1599,7 @@ mod test_instructions {
         cpu.a = 0b00001111;
         ram[0x8000] = 0b00001000;
 
-        OpCode(Instruction::EOR, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::EOR, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b00000111);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, false);
@@ -1606,7 +1614,7 @@ mod test_instructions {
         cpu.a = 0b00001111;
         ram[0x8000] = 0b11110000;
 
-        OpCode(Instruction::ORA, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::ORA, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b11111111);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1622,7 +1630,7 @@ mod test_instructions {
         ram[0x1] = 0;
         ram[0x8000] = 0x1;
 
-        OpCode(Instruction::BIT, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BIT, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.v, false);
         assert_eq!(cpu.flags.n, false);
@@ -1632,7 +1640,7 @@ mod test_instructions {
         ram[0x1] = 0b11000000;
         ram[0x8000] = 0x1;
 
-        OpCode(Instruction::BIT, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BIT, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.v, true);
         assert_eq!(cpu.flags.n, true);
@@ -1648,7 +1656,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         cpu.flags.c = false;
         ram[0x8000] = 0x10;
-        OpCode(Instruction::ADC, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::ADC, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0x30);
         assert_eq!(cpu.flags.c, false);
 
@@ -1656,7 +1664,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         cpu.flags.c = true;
         ram[0x8000] = 1;
-        OpCode(Instruction::ADC, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::ADC, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 1);
         assert_eq!(cpu.flags.c, true);
     }
@@ -1671,7 +1679,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         cpu.flags.c = true;
         ram[0x8000] = 0x10;
-        OpCode(Instruction::SBC, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::SBC, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0x20);
         assert_eq!(cpu.flags.c, true);
 
@@ -1679,7 +1687,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         cpu.flags.c = false;
         ram[0x8000] = 1;
-        OpCode(Instruction::SBC, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::SBC, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0xFE);
         assert_eq!(cpu.flags.c, false);
     }
@@ -1692,7 +1700,7 @@ mod test_instructions {
         cpu.a = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x10;
-        OpCode(Instruction::CMP, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::CMP, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1700,7 +1708,7 @@ mod test_instructions {
         cpu.a = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x20;
-        OpCode(Instruction::CMP, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::CMP, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, false);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1714,7 +1722,7 @@ mod test_instructions {
         cpu.x = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x10;
-        OpCode(Instruction::CPX, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::CPX, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1722,7 +1730,7 @@ mod test_instructions {
         cpu.x = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x20;
-        OpCode(Instruction::CPX, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::CPX, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, false);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1736,7 +1744,7 @@ mod test_instructions {
         cpu.y = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x10;
-        OpCode(Instruction::CPY, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::CPY, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1744,7 +1752,7 @@ mod test_instructions {
         cpu.y = 0x10;
         cpu.pc = 0x8000;
         ram[0x8000] = 0x20;
-        OpCode(Instruction::CPY, AddressingMode::Immediate).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::CPY, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, false);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1758,7 +1766,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         ram[0x8000] = 0x00;
         ram[0x00] = 0xFE;
-        OpCode(Instruction::INC, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::INC, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x00], 0xFF);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1766,7 +1774,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         ram[0x8000] = 0x00;
         ram[0x00] = 0xFF;
-        OpCode(Instruction::INC, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::INC, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x00], 0x00);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1778,13 +1786,13 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.x = 0xFE;
-        OpCode(Instruction::INX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::INX, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0xFF);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
         cpu.x = 0xFF;
-        OpCode(Instruction::INX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::INX, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0x00);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1796,13 +1804,13 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.y = 0xFE;
-        OpCode(Instruction::INY, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::INY, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0xFF);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
 
         cpu.y = 0xFF;
-        OpCode(Instruction::INY, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::INY, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0x00);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1816,7 +1824,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         ram[0x8000] = 0x00;
         ram[0x00] = 0x01;
-        OpCode(Instruction::DEC, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::DEC, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x00], 0x00);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
@@ -1824,7 +1832,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         ram[0x8000] = 0x00;
         ram[0x00] = 0x00;
-        OpCode(Instruction::DEC, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::DEC, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x00], 0xFF);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
@@ -1836,11 +1844,11 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.x = 0x01;
-        OpCode(Instruction::DEX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::DEX, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0x00);
 
         cpu.x = 0x00;
-        OpCode(Instruction::DEX, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::DEX, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.x, 0xFF);
     }
 
@@ -1850,11 +1858,11 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.y = 0x01;
-        OpCode(Instruction::DEY, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::DEY, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0x00);
 
         cpu.y = 0x00;
-        OpCode(Instruction::DEY, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::DEY, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.y, 0xFF);
     }
 
@@ -1864,14 +1872,14 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.a = 0b10111111;
-        OpCode(Instruction::ASL, AddressingMode::Accumulator).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::ASL, AddressingMode::Accumulator, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b01111110);
         assert_eq!(cpu.flags.c, true);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0x01;
         ram[0x01] = 0b01000000;
-        OpCode(Instruction::ASL, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::ASL, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x01], 0b10000000);
         assert_eq!(cpu.flags.c, false);
     }
@@ -1882,14 +1890,14 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.a = 0b11111101;
-        OpCode(Instruction::LSR, AddressingMode::Accumulator).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LSR, AddressingMode::Accumulator, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b01111110);
         assert_eq!(cpu.flags.c, true);
 
         cpu.pc = 0x8000;
         ram[0x8000] = 0x01;
         ram[0x01] = 0b00000010;
-        OpCode(Instruction::LSR, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LSR, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x01], 0b00000001);
         assert_eq!(cpu.flags.c, false);
     }
@@ -1901,7 +1909,7 @@ mod test_instructions {
 
         cpu.a = 0b10111111;
         cpu.flags.c = true;
-        OpCode(Instruction::ROL, AddressingMode::Accumulator).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::ROL, AddressingMode::Accumulator, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b01111111);
         assert_eq!(cpu.flags.c, true);
 
@@ -1909,7 +1917,7 @@ mod test_instructions {
         cpu.flags.c = false;
         ram[0x8000] = 0x01;
         ram[0x01] = 0b01000000;
-        OpCode(Instruction::ROL, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::ROL, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x01], 0b10000000);
         assert_eq!(cpu.flags.c, false);
     }
@@ -1921,7 +1929,7 @@ mod test_instructions {
 
         cpu.a = 0b11111101;
         cpu.flags.c = true;
-        OpCode(Instruction::ROR, AddressingMode::Accumulator).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::ROR, AddressingMode::Accumulator, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b11111110);
         assert_eq!(cpu.flags.c, true);
 
@@ -1929,7 +1937,7 @@ mod test_instructions {
         cpu.flags.c = false;
         ram[0x8000] = 0x01;
         ram[0x01] = 0b00000010;
-        OpCode(Instruction::ROR, AddressingMode::ZeroPage).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::ROR, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x01], 0b00000001);
         assert_eq!(cpu.flags.c, false);
     }
@@ -1942,7 +1950,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         ram[0x8000] = 0x02;
         ram[0x8001] = 0x01;
-        OpCode(Instruction::JMP, AddressingMode::Absolute).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::JMP, AddressingMode::Absolute, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x0102);
 
         cpu.pc = 0x8000;
@@ -1950,7 +1958,7 @@ mod test_instructions {
         ram[0x8001] = 0x01;
         ram[0x0102] = 0x04;
         ram[0x0103] = 0x03;
-        OpCode(Instruction::JMP, AddressingMode::Indirect).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::JMP, AddressingMode::Indirect, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x0304);
     }
 
@@ -1963,7 +1971,7 @@ mod test_instructions {
         cpu.sp = 0xFF;
         ram[0x8001] = 0x02;
         ram[0x8002] = 0x01;
-        OpCode(Instruction::JSR, AddressingMode::Absolute).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::JSR, AddressingMode::Absolute, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x0102);
         assert_eq!(ram[0x01FF], 0x80);
         assert_eq!(ram[0x01FE], 0x02);
@@ -1978,7 +1986,7 @@ mod test_instructions {
         cpu.sp = 0xFD;
         ram[0x01FE] = 0x02;
         ram[0x01FF] = 0x01;
-        OpCode(Instruction::RTS, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::RTS, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x0103);
     }
 
@@ -1990,13 +1998,13 @@ mod test_instructions {
         cpu.pc = 0x8001;
         cpu.flags.c = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BCC, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BCC, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.c = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BCC, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BCC, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2008,13 +2016,13 @@ mod test_instructions {
         cpu.pc = 0x8001;
         cpu.flags.c = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BCS, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BCS, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.c = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BCS, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BCS, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2026,13 +2034,13 @@ mod test_instructions {
         cpu.pc = 0x8001;
         cpu.flags.z = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BNE, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BNE, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.z = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BNE, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BNE, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2044,13 +2052,13 @@ mod test_instructions {
         cpu.pc = 0x8001;
         cpu.flags.z = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BEQ, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BEQ, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.z = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BEQ, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BEQ, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2062,13 +2070,13 @@ mod test_instructions {
         cpu.pc = 0x8001;
         cpu.flags.n = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BPL, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BPL, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.n = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BPL, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BPL, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2080,13 +2088,13 @@ mod test_instructions {
         cpu.pc = 0x8001;
         cpu.flags.n = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BMI, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BMI, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.n = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BMI, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BMI, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2098,13 +2106,13 @@ mod test_instructions {
         cpu.pc = 0x8001;
         cpu.flags.v = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BVC, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BVC, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.v = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BVC, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BVC, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2116,13 +2124,13 @@ mod test_instructions {
         cpu.pc = 0x8001;
         cpu.flags.v = true;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BVS, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BVS, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8004);
 
         cpu.pc = 0x8001;
         cpu.flags.v = false;
         ram[0x8001] = 0x02_i8 as u8;
-        OpCode(Instruction::BVS, AddressingMode::Relative).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BVS, AddressingMode::Relative, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x8002);
     }
 
@@ -2132,7 +2140,7 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.flags.c = true;
-        OpCode(Instruction::CLC, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::CLC, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, false);
     }
 
@@ -2142,7 +2150,7 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.flags.d = true;
-        OpCode(Instruction::CLD, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::CLD, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.d, false);
     }
 
@@ -2152,7 +2160,7 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.flags.i = true;
-        OpCode(Instruction::CLI, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::CLI, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.i, false);
     }
 
@@ -2162,7 +2170,7 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.flags.v = true;
-        OpCode(Instruction::CLV, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::CLV, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.v, false);
     }
 
@@ -2172,7 +2180,7 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.flags.c = false;
-        OpCode(Instruction::SEC, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::SEC, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, true);
     }
 
@@ -2182,7 +2190,7 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.flags.d = false;
-        OpCode(Instruction::SED, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::SED, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.d, true);
     }
 
@@ -2192,7 +2200,7 @@ mod test_instructions {
         let mut ram = RAM::default();
 
         cpu.flags.i = false;
-        OpCode(Instruction::SEI, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::SEI, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.i, true);
     }
 
@@ -2203,7 +2211,7 @@ mod test_instructions {
 
         cpu.pc = 0x8000;
         cpu.sp = 0xFF;
-        OpCode(Instruction::BRK, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::BRK, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x01FE], 0x00);
         assert_eq!(ram[0x01FF], 0x80);
         assert_eq!(ram[0x01FD], 0b00110000);
@@ -2221,7 +2229,7 @@ mod test_instructions {
         ram[0x01FD] = 0b00110001;
         ram[0x01FE] = 0x00;
         ram[0x01FF] = 0x90;
-        OpCode(Instruction::RTI, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::RTI, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.i, false);
         assert_eq!(cpu.flags.b, false);
@@ -2233,6 +2241,6 @@ mod test_instructions {
         let mut cpu = CPU::default();
         let mut ram = RAM::default();
 
-        OpCode(Instruction::NOP, AddressingMode::Implied).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::NOP, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
     }
 }
