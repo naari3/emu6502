@@ -463,14 +463,15 @@ impl OpCode {
             JSR => {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
                 let pc = cpu.pc - 1;
-                cpu.push_to_stack(ram, (pc & 0xFF) as u8);
                 cpu.push_to_stack(ram, (pc >> 8) as u8);
+                cpu.push_to_stack(ram, (pc & 0xFF) as u8);
                 cpu.remain_cycles -= 1;
                 cpu.pc = addr;
             }
             RTS => {
                 cpu.remain_cycles += 1;
-                let pc = ((cpu.pull_from_stack(ram) as u16) << 8) + cpu.pull_from_stack(ram) as u16;
+                let pc =
+                    (cpu.pull_from_stack(ram) as u16) + ((cpu.pull_from_stack(ram) as u16) << 8);
                 cpu.pc = pc + 1;
             }
             BCC => {
@@ -583,8 +584,8 @@ impl OpCode {
             }
             BRK => {
                 let pc = cpu.pc;
-                cpu.push_to_stack(ram, (pc & 0xFF) as u8);
                 cpu.push_to_stack(ram, (pc >> 8) as u8);
+                cpu.push_to_stack(ram, (pc & 0xFF) as u8);
                 cpu.flags.b = true;
                 let flags = cpu.flags.get_as_u8();
                 cpu.push_to_stack(ram, flags);
@@ -598,8 +599,9 @@ impl OpCode {
                 let flags = cpu.pull_from_stack(ram);
                 cpu.flags.set_as_u8(flags);
                 cpu.flags.b = false;
-                cpu.pc =
-                    ((cpu.pull_from_stack(ram) as u16) << 8 + cpu.pull_from_stack(ram) as u16) + 1;
+                cpu.pc = ((cpu.pull_from_stack(ram) as u16)
+                    + ((cpu.pull_from_stack(ram) as u16) << 8))
+                    + 1;
                 cpu.remain_cycles -= 1;
             }
         }
@@ -1894,8 +1896,8 @@ mod test_instructions {
         ram[0x8002] = 0x01;
         OpCode(Instruction::JSR, AddressingMode::Absolute).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x0102);
-        assert_eq!(ram[0x01FF], 0x02);
-        assert_eq!(ram[0x01FE], 0x80);
+        assert_eq!(ram[0x01FF], 0x80);
+        assert_eq!(ram[0x01FE], 0x02);
     }
 
     #[test]
@@ -1905,8 +1907,8 @@ mod test_instructions {
 
         cpu.pc = 0x8000;
         cpu.sp = 0xFD;
-        ram[0x01FE] = 0x01;
-        ram[0x01FF] = 0x02;
+        ram[0x01FE] = 0x02;
+        ram[0x01FF] = 0x01;
         OpCode(Instruction::RTS, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.pc, 0x0103);
     }
@@ -2133,8 +2135,8 @@ mod test_instructions {
         cpu.pc = 0x8000;
         cpu.sp = 0xFF;
         OpCode(Instruction::BRK, AddressingMode::Implied).execute(&mut cpu, &mut ram);
-        assert_eq!(ram[0x01FF], 0x00);
-        assert_eq!(ram[0x01FE], 0x80);
+        assert_eq!(ram[0x01FE], 0x00);
+        assert_eq!(ram[0x01FF], 0x80);
         assert_eq!(ram[0x01FD], 0b00110000);
         assert_eq!(cpu.flags.i, true);
     }
@@ -2148,8 +2150,8 @@ mod test_instructions {
         cpu.sp = 0xFC;
         cpu.flags.i = true;
         ram[0x01FD] = 0b00110001;
-        ram[0x01FE] = 0x90;
-        ram[0x01FF] = 0x00;
+        ram[0x01FE] = 0x00;
+        ram[0x01FF] = 0x90;
         OpCode(Instruction::RTI, AddressingMode::Implied).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.i, false);
