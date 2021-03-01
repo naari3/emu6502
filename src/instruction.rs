@@ -103,6 +103,19 @@ pub enum Officiality {
     Unofficial,
 }
 
+impl std::fmt::Display for Officiality {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Official => {
+                write!(f, " ")
+            }
+            Unofficial => {
+                write!(f, "*")
+            }
+        }
+    }
+}
+
 impl AddressingMode {
     fn fetch<T: MemIO>(&self, cpu: &mut CPU, ram: &mut T) -> Option<u8> {
         match self {
@@ -636,6 +649,7 @@ impl OpCode {
     #[cfg(feature = "logging")]
     pub fn log<T: MemIO>(&self, cpu: &mut CPU, mem: &mut T) -> String {
         let ins = self.0;
+        let ofc = self.2;
         let adr_mode = self.1;
 
         let ins_byte = OPCODES
@@ -816,7 +830,7 @@ impl OpCode {
             _ => format!("{:02X}", ins_byte),
         };
 
-        format!("{: <8}  {:?} {: <26} ", bytes_str, ins, addr_str)
+        format!("{: <8} {}{:?} {: <26} ", bytes_str, ofc, ins, addr_str)
     }
 }
 
