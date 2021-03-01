@@ -850,7 +850,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $6B
     Some(OpCode(JMP, Indirect)),        // $6C    JMP $NN      Indirect
     Some(OpCode(ADC, Absolute)),        // $6D    ADC $NNNN    Absolute
-    Some(OpCode(ROR, AbsoluteX)),       // $6E    ROR $NNNN,X  AbsoluteX
+    Some(OpCode(ROR, Absolute)),        // $6E    ROR $NNNN,X  Absolute
     None,                               // $6F
     Some(OpCode(BVS, Relative)),        // $70    BVS $NN      Relative
     Some(OpCode(ADC, IndirectIndexed)), // $71    ADC ($NN),Y  IndirectIndexed
@@ -866,7 +866,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     None,                               // $7B
     None,                               // $7C
     Some(OpCode(ADC, AbsoluteX)),       // $7D    ADC $NNNN,X  AbsoluteX
-    Some(OpCode(ROR, Absolute)),        // $7E    ROR $NNNN    Absolute
+    Some(OpCode(ROR, AbsoluteX)),       // $7E    ROR $NNNN    AbsoluteX
     None,                               // $7F
     None,                               // $80
     Some(OpCode(STA, IndexedIndirect)), // $81    STA ($NN,X)  IndexedIndirect
