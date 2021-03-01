@@ -704,7 +704,7 @@ impl OpCode {
             _ => format!("{:02X}", ins_byte),
         };
 
-        format!("{: <8}  {:?} {: <27} ", bytes_str, ins, addr_str)
+        format!("{: <8}  {:?} {: <26} ", bytes_str, ins, addr_str)
     }
 }
 
