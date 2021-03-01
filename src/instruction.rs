@@ -681,7 +681,10 @@ impl OpCode {
             ),
             AbsoluteY => (
                 format!("${:04X},Y", bytes[0] as u16 + ((bytes[1] as u16) << 8)),
-                Some(bytes[0] as u16 + ((bytes[1] as u16) << 8).wrapping_add(cpu.y as u16)),
+                Some(
+                    (bytes[0] as u16)
+                        .wrapping_add(((bytes[1] as u16) << 8).wrapping_add(cpu.y as u16)),
+                ),
             ),
             Indirect => {
                 let in_addr = bytes[0] as u16 + ((bytes[1] as u16) << 8);
@@ -739,6 +742,14 @@ impl OpCode {
                     )
                 }
                 _ => {
+                    if ins == LDA && adr_mode == AbsoluteY {
+                        addr_str = format!(
+                            "{:} @ {:04X}",
+                            addr_str,
+                            (bytes[0] as u16)
+                                .wrapping_add(((bytes[1] as u16) << 8).wrapping_add(cpu.y as u16))
+                        )
+                    }
                     addr_str = format!(
                         "{:} = {:02X}",
                         addr_str,
