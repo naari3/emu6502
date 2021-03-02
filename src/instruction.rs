@@ -687,7 +687,10 @@ impl OpCode {
                 Some((bytes[0].wrapping_add(cpu.y)) as u16),
             ),
             Relative => (
-                format!("${:04X}", cpu.pc + 1 + bytes[0] as u16),
+                format!(
+                    "${:04X}",
+                    (((cpu.pc + 1) as i32) + (bytes[0] as i8) as i32) as u16
+                ),
                 Some(cpu.pc + 1 + bytes[0] as u16),
             ),
             Absolute => (
