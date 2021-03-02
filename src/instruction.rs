@@ -83,6 +83,7 @@ pub enum Instruction {
     ISB,
     RLA,
     SLO,
+    SRE,
     // NOPs
     SKB,
     IGN,
@@ -704,6 +705,20 @@ impl OpCode {
                 cpu.set_accumulator(cpu.a | byte);
                 cpu.remain_cycles += 2;
             }
+            SRE => {
+                // LSR -> EOR
+                // LSR
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
+                let byte = cpu.read_byte(ram, addr as usize);
+                cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
+                let byte = byte >> 1;
+                cpu.set_zero_and_negative_flag(byte);
+                cpu.write_byte(ram, addr as usize, byte);
+
+                // EOR
+                cpu.set_accumulator(cpu.a ^ byte);
+                cpu.remain_cycles += 2;
+            }
             SKB => {
                 adr_mode.fetch(cpu, ram).unwrap();
             }
@@ -815,8 +830,8 @@ impl OpCode {
         };
         match ins {
             LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND | EOR | ADC | SBC | CMP | CPX
-            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SAX | DCP | ISB | RLA | SLO | SKB
-            | IGN => match adr_mode {
+            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SAX | DCP | ISB | RLA | SLO | SRE
+            | SKB | IGN => match adr_mode {
                 Implied | Accumulator | Immediate => {}
                 ZeroPageX => {
                     addr_str = format!("{:} @ {:02X}", addr_str, (bytes[0]).wrapping_add(cpu.x));
@@ -989,11 +1004,11 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x40 */ Some(OpCode(RTI, Implied, Official)),
     /* 0x41 */ Some(OpCode(EOR, IndexedIndirect, Official)),
     /* 0x42 */ None,
-    /* 0x43 */ None,
+    /* 0x43 */ Some(OpCode(SRE, IndexedIndirect, Unofficial)),
     /* 0x44 */ Some(OpCode(IGN, ZeroPage, Unofficial)),
     /* 0x45 */ Some(OpCode(EOR, ZeroPage, Official)),
     /* 0x46 */ Some(OpCode(LSR, ZeroPage, Official)),
-    /* 0x47 */ None,
+    /* 0x47 */ Some(OpCode(SRE, ZeroPage, Unofficial)),
     /* 0x48 */ Some(OpCode(PHA, Implied, Official)),
     /* 0x49 */ Some(OpCode(EOR, Immediate, Official)),
     /* 0x4A */ Some(OpCode(LSR, Accumulator, Official)),
@@ -1001,23 +1016,23 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x4C */ Some(OpCode(JMP, Absolute, Official)),
     /* 0x4D */ Some(OpCode(EOR, Absolute, Official)),
     /* 0x4E */ Some(OpCode(LSR, Absolute, Official)),
-    /* 0x4F */ None,
+    /* 0x4F */ Some(OpCode(SRE, Absolute, Unofficial)),
     /* 0x50 */ Some(OpCode(BVC, Relative, Official)),
     /* 0x51 */ Some(OpCode(EOR, IndirectIndexed, Official)),
     /* 0x52 */ None,
-    /* 0x53 */ None,
+    /* 0x53 */ Some(OpCode(SRE, IndirectIndexed, Unofficial)),
     /* 0x54 */ Some(OpCode(IGN, ZeroPageX, Unofficial)),
     /* 0x55 */ Some(OpCode(EOR, ZeroPageX, Official)),
     /* 0x56 */ Some(OpCode(LSR, ZeroPageX, Official)),
-    /* 0x57 */ None,
+    /* 0x57 */ Some(OpCode(SRE, ZeroPageX, Unofficial)),
     /* 0x58 */ Some(OpCode(CLI, Implied, Official)),
     /* 0x59 */ Some(OpCode(EOR, AbsoluteY, Official)),
     /* 0x5A */ Some(OpCode(NOP, Implied, Unofficial)),
-    /* 0x5B */ None,
+    /* 0x5B */ Some(OpCode(SRE, AbsoluteY, Unofficial)),
     /* 0x5C */ Some(OpCode(IGN, AbsoluteX, Unofficial)),
     /* 0x5D */ Some(OpCode(EOR, AbsoluteX, Official)),
     /* 0x5E */ Some(OpCode(LSR, AbsoluteX, Official)),
-    /* 0x5F */ None,
+    /* 0x5F */ Some(OpCode(SRE, AbsoluteX, Unofficial)),
     /* 0x60 */ Some(OpCode(RTS, Implied, Official)),
     /* 0x61 */ Some(OpCode(ADC, IndexedIndirect, Official)),
     /* 0x62 */ None,
@@ -2452,6 +2467,21 @@ mod test_instructions {
         assert_eq!(ram[0x10], 0b01111110);
         assert_eq!(cpu.a, 0b11111111);
         assert_eq!(cpu.flags.c, true);
+    }
+
+    #[test]
+    fn test_sre() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+
+        cpu.pc = 0x8000;
+        cpu.a = 0b01111110;
+        ram[0x8000] = 0x01;
+        ram[0x01] = 0b00000010;
+        OpCode(Instruction::SRE, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
+        assert_eq!(ram[0x01], 0b00000001);
+        assert_eq!(cpu.a, 0b01111111);
+        assert_eq!(cpu.flags.c, false);
     }
 
     #[test]
