@@ -80,6 +80,7 @@ pub enum Instruction {
     SAX,
     // RMW instructions
     DCP,
+    ISB,
     // NOPs
     SKB,
     IGN,
@@ -649,6 +650,20 @@ impl OpCode {
                 cpu.flags.n = cpu.a.wrapping_sub(byte) >> 7 & 1 == 1;
                 cpu.remain_cycles += 2;
             }
+            ISB => {
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
+                let inc_byte = cpu.read_byte(ram, addr as usize);
+                let inc_byte = inc_byte.wrapping_add(1);
+                cpu.remain_cycles += 1;
+                cpu.set_zero_and_negative_flag(inc_byte);
+                cpu.write_byte(ram, addr as usize, inc_byte);
+
+                let (byte, overflowing1) = cpu.a.overflowing_sub(inc_byte);
+                let (byte, overflowing2) = byte.overflowing_sub(!cpu.flags.c as u8);
+                cpu.flags.c = !(overflowing1 || overflowing2);
+                cpu.flags.v = (((cpu.a ^ inc_byte) & 0x80) != 0) && (((cpu.a ^ byte) & 0x80) != 0);
+                cpu.set_accumulator(byte);
+            }
             SKB => {
                 adr_mode.fetch(cpu, ram).unwrap();
             }
@@ -760,7 +775,7 @@ impl OpCode {
         };
         match ins {
             LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND | EOR | ADC | SBC | CMP | CPX
-            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SAX | SKB | IGN | DCP => {
+            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SAX | SKB | IGN | DCP | ISB => {
                 match adr_mode {
                     Implied | Accumulator | Immediate => {}
                     ZeroPageX => {
@@ -1097,11 +1112,11 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0xE0 */ Some(OpCode(CPX, Immediate, Official)),
     /* 0xE1 */ Some(OpCode(SBC, IndexedIndirect, Official)),
     /* 0xE2 */ Some(OpCode(SKB, Immediate, Unofficial)),
-    /* 0xE3 */ None,
+    /* 0xE3 */ Some(OpCode(ISB, IndexedIndirect, Unofficial)),
     /* 0xE4 */ Some(OpCode(CPX, ZeroPage, Official)),
     /* 0xE5 */ Some(OpCode(SBC, ZeroPage, Official)),
     /* 0xE6 */ Some(OpCode(INC, ZeroPage, Official)),
-    /* 0xE7 */ None,
+    /* 0xE7 */ Some(OpCode(ISB, ZeroPage, Unofficial)),
     /* 0xE8 */ Some(OpCode(INX, Implied, Official)),
     /* 0xE9 */ Some(OpCode(SBC, Immediate, Official)),
     /* 0xEA */ Some(OpCode(NOP, Implied, Official)),
@@ -1109,23 +1124,23 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0xEC */ Some(OpCode(CPX, Absolute, Official)),
     /* 0xED */ Some(OpCode(SBC, Absolute, Official)),
     /* 0xEE */ Some(OpCode(INC, Absolute, Official)),
-    /* 0xEF */ None,
+    /* 0xEF */ Some(OpCode(ISB, Absolute, Unofficial)),
     /* 0xF0 */ Some(OpCode(BEQ, Relative, Official)),
     /* 0xF1 */ Some(OpCode(SBC, IndirectIndexed, Official)),
     /* 0xF2 */ None,
-    /* 0xF3 */ None,
+    /* 0xF3 */ Some(OpCode(ISB, IndirectIndexed, Unofficial)),
     /* 0xF4 */ Some(OpCode(IGN, ZeroPageX, Unofficial)),
     /* 0xF5 */ Some(OpCode(SBC, ZeroPageX, Official)),
     /* 0xF6 */ Some(OpCode(INC, ZeroPageX, Official)),
-    /* 0xF7 */ None,
+    /* 0xF7 */ Some(OpCode(ISB, ZeroPageX, Unofficial)),
     /* 0xF8 */ Some(OpCode(SED, Implied, Official)),
     /* 0xF9 */ Some(OpCode(SBC, AbsoluteY, Official)),
     /* 0xFA */ Some(OpCode(NOP, Implied, Unofficial)),
-    /* 0xFB */ None,
+    /* 0xFB */ Some(OpCode(ISB, AbsoluteY, Unofficial)),
     /* 0xFC */ Some(OpCode(IGN, AbsoluteX, Unofficial)),
     /* 0xFD */ Some(OpCode(SBC, AbsoluteX, Official)),
     /* 0xFE */ Some(OpCode(INC, AbsoluteX, Official)),
-    /* 0xFF */ None,
+    /* 0xFF */ Some(OpCode(ISB, AbsoluteX, Unofficial)),
 ];
 
 #[cfg(test)]
@@ -2351,6 +2366,23 @@ mod test_instructions {
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
+    }
+
+    #[test]
+    fn test_isb() {
+        // TODO: implement test for v flag
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+
+        cpu.a = 0x30;
+        cpu.pc = 0x8000;
+        cpu.flags.c = true;
+        ram[0x8000] = 0x10;
+        ram[0x10] = 0xF;
+        OpCode(Instruction::ISB, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
+        assert_eq!(ram[0x10], 0x10);
+        assert_eq!(cpu.a, 0x20);
+        assert_eq!(cpu.flags.c, true);
     }
 
     #[test]
