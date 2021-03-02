@@ -1004,7 +1004,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x94 */ Some(OpCode(STY, ZeroPageX, Official)),
     /* 0x95 */ Some(OpCode(STA, ZeroPageX, Official)),
     /* 0x96 */ Some(OpCode(STX, ZeroPageY, Official)),
-    /* 0x97 */ Some(OpCode(SAX, IndirectIndexed, Unofficial)),
+    /* 0x97 */ Some(OpCode(SAX, ZeroPageY, Unofficial)),
     /* 0x98 */ Some(OpCode(TYA, Implied, Official)),
     /* 0x99 */ Some(OpCode(STA, AbsoluteY, Official)),
     /* 0x9A */ Some(OpCode(TXS, Implied, Official)),
