@@ -2363,6 +2363,7 @@ mod test_instructions {
         ram[0x8000] = 0x10;
         ram[0x10] = 0x11;
         OpCode(Instruction::DCP, AddressingMode::ZeroPage, Unofficial).execute(&mut cpu, &mut ram);
+        assert_eq!(ram[0x10], 0x10);
         assert_eq!(cpu.flags.c, true);
         assert_eq!(cpu.flags.z, true);
         assert_eq!(cpu.flags.n, false);
