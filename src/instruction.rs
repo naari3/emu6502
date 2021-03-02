@@ -662,7 +662,6 @@ impl OpCode {
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
                 let inc_byte = cpu.read_byte(ram, addr as usize);
                 let inc_byte = inc_byte.wrapping_add(1);
-                cpu.remain_cycles += 1;
                 cpu.set_zero_and_negative_flag(inc_byte);
                 cpu.write_byte(ram, addr as usize, inc_byte);
 
@@ -672,6 +671,22 @@ impl OpCode {
                 cpu.flags.c = !(overflowing1 || overflowing2);
                 cpu.flags.v = (((cpu.a ^ inc_byte) & 0x80) != 0) && (((cpu.a ^ byte) & 0x80) != 0);
                 cpu.set_accumulator(byte);
+                cpu.remain_cycles += 2;
+            }
+            SLO => {
+                // ASL -> ORA
+                // ASL
+                cpu.remain_cycles += 1;
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
+                let byte = cpu.read_byte(ram, addr as usize);
+                cpu.flags.c = byte >> 7 & 1 == 1; // old 7 bit
+                let byte = byte << 1;
+                cpu.set_zero_and_negative_flag(byte);
+                cpu.write_byte(ram, addr as usize, byte);
+
+                // ORA
+                cpu.set_accumulator(cpu.a | byte);
+                cpu.remain_cycles += 2;
             }
             SKB => {
                 adr_mode.fetch(cpu, ram).unwrap();
@@ -784,7 +799,7 @@ impl OpCode {
         };
         match ins {
             LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND | EOR | ADC | SBC | CMP | CPX
-            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SAX | SKB | IGN | DCP | ISB => {
+            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SAX | DCP | ISB | SLO | SKB | IGN => {
                 match adr_mode {
                     Implied | Accumulator | Immediate => {}
                     ZeroPageX => {
@@ -897,11 +912,11 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x00 */ Some(OpCode(BRK, Implied, Official)),
     /* 0x01 */ Some(OpCode(ORA, IndexedIndirect, Official)),
     /* 0x02 */ None,
-    /* 0x03 */ None,
+    /* 0x03 */ Some(OpCode(SLO, IndexedIndirect, Unofficial)),
     /* 0x04 */ Some(OpCode(IGN, ZeroPage, Unofficial)),
     /* 0x05 */ Some(OpCode(ORA, ZeroPage, Official)),
     /* 0x06 */ Some(OpCode(ASL, ZeroPage, Official)),
-    /* 0x07 */ None,
+    /* 0x07 */ Some(OpCode(SLO, ZeroPage, Unofficial)),
     /* 0x08 */ Some(OpCode(PHP, Implied, Official)),
     /* 0x09 */ Some(OpCode(ORA, Immediate, Official)),
     /* 0x0A */ Some(OpCode(ASL, Accumulator, Official)),
@@ -909,23 +924,23 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x0C */ Some(OpCode(IGN, Absolute, Unofficial)),
     /* 0x0D */ Some(OpCode(ORA, Absolute, Official)),
     /* 0x0E */ Some(OpCode(ASL, Absolute, Official)),
-    /* 0x0F */ None,
+    /* 0x0F */ Some(OpCode(SLO, Absolute, Unofficial)),
     /* 0x10 */ Some(OpCode(BPL, Relative, Official)),
     /* 0x11 */ Some(OpCode(ORA, IndirectIndexed, Official)),
     /* 0x12 */ None,
-    /* 0x13 */ None,
+    /* 0x13 */ Some(OpCode(SLO, IndirectIndexed, Unofficial)),
     /* 0x14 */ Some(OpCode(IGN, ZeroPageX, Unofficial)),
     /* 0x15 */ Some(OpCode(ORA, ZeroPageX, Official)),
     /* 0x16 */ Some(OpCode(ASL, ZeroPageX, Official)),
-    /* 0x17 */ None,
+    /* 0x17 */ Some(OpCode(SLO, ZeroPageX, Unofficial)),
     /* 0x18 */ Some(OpCode(CLC, Implied, Official)),
     /* 0x19 */ Some(OpCode(ORA, AbsoluteY, Official)),
     /* 0x1A */ Some(OpCode(NOP, Implied, Unofficial)),
-    /* 0x1B */ None,
+    /* 0x1B */ Some(OpCode(SLO, AbsoluteY, Unofficial)),
     /* 0x1C */ Some(OpCode(IGN, AbsoluteX, Unofficial)),
     /* 0x1D */ Some(OpCode(ORA, AbsoluteX, Official)),
     /* 0x1E */ Some(OpCode(ASL, AbsoluteX, Official)),
-    /* 0x1F */ None,
+    /* 0x1F */ Some(OpCode(SLO, AbsoluteX, Unofficial)),
     /* 0x20 */ Some(OpCode(JSR, Absolute, Official)),
     /* 0x21 */ Some(OpCode(AND, IndexedIndirect, Official)),
     /* 0x22 */ None,
@@ -2392,6 +2407,21 @@ mod test_instructions {
         OpCode(Instruction::ISB, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x10], 0x10);
         assert_eq!(cpu.a, 0x20);
+        assert_eq!(cpu.flags.c, true);
+    }
+
+    #[test]
+    fn test_slo() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+
+        cpu.a = 0b10000001;
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x10;
+        ram[0x10] = 0b10111111;
+        OpCode(Instruction::SLO, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
+        assert_eq!(ram[0x10], 0b01111110);
+        assert_eq!(cpu.a, 0b11111111);
         assert_eq!(cpu.flags.c, true);
     }
 
