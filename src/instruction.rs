@@ -82,6 +82,7 @@ pub enum Instruction {
     DCP,
     ISB,
     RLA,
+    RRA,
     SLO,
     SRE,
     // NOPs
@@ -690,6 +691,25 @@ impl OpCode {
                 cpu.set_accumulator(cpu.a & byte);
                 cpu.remain_cycles += 2;
             }
+            RRA => {
+                // ROR -> ADC
+                // ROR
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
+                let byte = cpu.read_byte(ram, addr as usize);
+                let new_last_byte = (cpu.flags.c as u8) << 7;
+                cpu.flags.c = byte >> 0 & 1 == 1; // old 0 bit
+                let ror_byte = (byte >> 1) | new_last_byte;
+                cpu.set_zero_and_negative_flag(ror_byte);
+                cpu.write_byte(ram, addr as usize, ror_byte);
+
+                // ADC
+                let (byte, overflowing1) = cpu.a.overflowing_add(ror_byte);
+                let (byte, overflowing2) = byte.overflowing_add(cpu.flags.c as u8);
+                cpu.flags.c = overflowing1 || overflowing2;
+                cpu.flags.v = (((cpu.a ^ byte) & 0x80) != 0) && (((ror_byte ^ byte) & 0x80) != 0);
+                cpu.set_accumulator(byte);
+                cpu.remain_cycles += 2;
+            }
             SLO => {
                 // ASL -> ORA
                 // ASL
@@ -830,8 +850,8 @@ impl OpCode {
         };
         match ins {
             LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND | EOR | ADC | SBC | CMP | CPX
-            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SAX | DCP | ISB | RLA | SLO | SRE
-            | SKB | IGN => match adr_mode {
+            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SAX | DCP | ISB | RLA | RRA | SLO
+            | SRE | SKB | IGN => match adr_mode {
                 Implied | Accumulator | Immediate => {}
                 ZeroPageX => {
                     addr_str = format!("{:} @ {:02X}", addr_str, (bytes[0]).wrapping_add(cpu.x));
@@ -1036,11 +1056,11 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x60 */ Some(OpCode(RTS, Implied, Official)),
     /* 0x61 */ Some(OpCode(ADC, IndexedIndirect, Official)),
     /* 0x62 */ None,
-    /* 0x63 */ None,
+    /* 0x63 */ Some(OpCode(RRA, IndexedIndirect, Unofficial)),
     /* 0x64 */ Some(OpCode(IGN, ZeroPage, Unofficial)),
     /* 0x65 */ Some(OpCode(ADC, ZeroPage, Official)),
     /* 0x66 */ Some(OpCode(ROR, ZeroPage, Official)),
-    /* 0x67 */ None,
+    /* 0x67 */ Some(OpCode(RRA, ZeroPage, Unofficial)),
     /* 0x68 */ Some(OpCode(PLA, Implied, Official)),
     /* 0x69 */ Some(OpCode(ADC, Immediate, Official)),
     /* 0x6A */ Some(OpCode(ROR, Accumulator, Official)),
@@ -1048,23 +1068,23 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x6C */ Some(OpCode(JMP, Indirect, Official)),
     /* 0x6D */ Some(OpCode(ADC, Absolute, Official)),
     /* 0x6E */ Some(OpCode(ROR, Absolute, Official)),
-    /* 0x6F */ None,
+    /* 0x6F */ Some(OpCode(RRA, Absolute, Unofficial)),
     /* 0x70 */ Some(OpCode(BVS, Relative, Official)),
     /* 0x71 */ Some(OpCode(ADC, IndirectIndexed, Official)),
     /* 0x72 */ None,
-    /* 0x73 */ None,
+    /* 0x73 */ Some(OpCode(RRA, IndirectIndexed, Unofficial)),
     /* 0x74 */ Some(OpCode(IGN, ZeroPageX, Unofficial)),
     /* 0x75 */ Some(OpCode(ADC, ZeroPageX, Official)),
     /* 0x76 */ Some(OpCode(ROR, ZeroPageX, Official)),
-    /* 0x77 */ None,
+    /* 0x77 */ Some(OpCode(RRA, ZeroPageX, Unofficial)),
     /* 0x78 */ Some(OpCode(SEI, Implied, Official)),
     /* 0x79 */ Some(OpCode(ADC, AbsoluteY, Official)),
     /* 0x7A */ Some(OpCode(NOP, Implied, Unofficial)),
-    /* 0x7B */ None,
+    /* 0x7B */ Some(OpCode(RRA, AbsoluteY, Unofficial)),
     /* 0x7C */ Some(OpCode(IGN, AbsoluteX, Unofficial)),
     /* 0x7D */ Some(OpCode(ADC, AbsoluteX, Official)),
     /* 0x7E */ Some(OpCode(ROR, AbsoluteX, Official)),
-    /* 0x7F */ None,
+    /* 0x7F */ Some(OpCode(RRA, AbsoluteX, Unofficial)),
     /* 0x80 */ Some(OpCode(SKB, Immediate, Unofficial)),
     /* 0x81 */ Some(OpCode(STA, IndexedIndirect, Official)),
     /* 0x82 */ Some(OpCode(SKB, Immediate, Unofficial)),
@@ -2451,6 +2471,22 @@ mod test_instructions {
         OpCode(Instruction::RLA, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x01], 0b10000010);
         assert_eq!(cpu.a, 0b10000000);
+        assert_eq!(cpu.flags.c, false);
+    }
+
+    #[test]
+    fn test_rra() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+
+        cpu.pc = 0x8000;
+        cpu.a = 0b11111110;
+        cpu.flags.c = false;
+        ram[0x8000] = 0x01;
+        ram[0x01] = 0b00000010;
+        OpCode(Instruction::RRA, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
+        assert_eq!(ram[0x01], 0b00000001);
+        assert_eq!(cpu.a, 0b11111111);
         assert_eq!(cpu.flags.c, false);
     }
 
