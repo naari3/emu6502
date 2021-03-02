@@ -77,6 +77,7 @@ pub enum Instruction {
     // see also https://wiki.nesdev.com/w/index.php/Programming_with_unofficial_opcodes
     // Convined operations
     LAX,
+    SAX,
     // NOPs
     SKB,
     IGN,
@@ -630,6 +631,11 @@ impl OpCode {
                 cpu.set_accumulator(byte);
                 cpu.set_index_x(byte);
             }
+            SAX => {
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
+                let byte = cpu.a & cpu.x;
+                cpu.write_byte(ram, addr as usize, byte);
+            }
             SKB => {
                 adr_mode.fetch(cpu, ram).unwrap();
             }
@@ -741,7 +747,7 @@ impl OpCode {
         };
         match ins {
             LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND | EOR | ADC | SBC | CMP | CPX
-            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SKB | IGN => match adr_mode {
+            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SAX | SKB | IGN => match adr_mode {
                 Implied | Accumulator | Immediate => {}
                 ZeroPageX => {
                     addr_str = format!("{:} @ {:02X}", addr_str, (bytes[0]).wrapping_add(cpu.x));
@@ -978,11 +984,11 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x80 */ Some(OpCode(SKB, Immediate, Unofficial)),
     /* 0x81 */ Some(OpCode(STA, IndexedIndirect, Official)),
     /* 0x82 */ Some(OpCode(SKB, Immediate, Unofficial)),
-    /* 0x83 */ None,
+    /* 0x83 */ Some(OpCode(SAX, IndexedIndirect, Unofficial)),
     /* 0x84 */ Some(OpCode(STY, ZeroPage, Official)),
     /* 0x85 */ Some(OpCode(STA, ZeroPage, Official)),
     /* 0x86 */ Some(OpCode(STX, ZeroPage, Official)),
-    /* 0x87 */ None,
+    /* 0x87 */ Some(OpCode(SAX, ZeroPage, Unofficial)),
     /* 0x88 */ Some(OpCode(DEY, Implied, Official)),
     /* 0x89 */ Some(OpCode(SKB, Immediate, Unofficial)),
     /* 0x8A */ Some(OpCode(TXA, Implied, Official)),
@@ -990,7 +996,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x8C */ Some(OpCode(STY, Absolute, Official)),
     /* 0x8D */ Some(OpCode(STA, Absolute, Official)),
     /* 0x8E */ Some(OpCode(STX, Absolute, Official)),
-    /* 0x8F */ None,
+    /* 0x8F */ Some(OpCode(SAX, Absolute, Unofficial)),
     /* 0x90 */ Some(OpCode(BCC, Relative, Official)),
     /* 0x91 */ Some(OpCode(STA, IndirectIndexed, Official)),
     /* 0x92 */ None,
@@ -998,7 +1004,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0x94 */ Some(OpCode(STY, ZeroPageX, Official)),
     /* 0x95 */ Some(OpCode(STA, ZeroPageX, Official)),
     /* 0x96 */ Some(OpCode(STX, ZeroPageY, Official)),
-    /* 0x97 */ None,
+    /* 0x97 */ Some(OpCode(SAX, IndirectIndexed, Unofficial)),
     /* 0x98 */ Some(OpCode(TYA, Implied, Official)),
     /* 0x99 */ Some(OpCode(STA, AbsoluteY, Official)),
     /* 0x9A */ Some(OpCode(TXS, Implied, Official)),
@@ -2300,6 +2306,19 @@ mod test_instructions {
         assert_eq!(cpu.x, 0b10000010);
         assert_eq!(cpu.flags.z, false);
         assert_eq!(cpu.flags.n, true);
+    }
+
+    #[test]
+    fn test_sax() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x42;
+        cpu.a = 0b00011111;
+        cpu.x = 0b11110000;
+        OpCode(Instruction::SAX, AddressingMode::ZeroPage, Unofficial).execute(&mut cpu, &mut ram);
+        assert_eq!(ram[0x42], 0b00010000);
     }
 
     #[test]
