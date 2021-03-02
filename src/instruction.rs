@@ -307,6 +307,8 @@ impl OpCode {
             }
             PLP => {
                 let byte = cpu.pull_from_stack(ram);
+                // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
+                let byte = byte & 0b11001111;
                 cpu.flags.set_as_u8(byte);
                 cpu.remain_cycles += 1;
             }
