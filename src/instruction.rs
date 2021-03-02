@@ -78,6 +78,8 @@ pub enum Instruction {
     // Convined operations
     LAX,
     SAX,
+    // RMW instructions
+    DCP,
     // NOPs
     SKB,
     IGN,
@@ -636,6 +638,17 @@ impl OpCode {
                 let byte = cpu.a & cpu.x;
                 cpu.write_byte(ram, addr as usize, byte);
             }
+            DCP => {
+                let addr = adr_mode.get_address(cpu, ram).unwrap();
+                let byte = cpu.read_byte(ram, addr as usize);
+                let byte = byte.wrapping_sub(1);
+                cpu.write_byte(ram, addr as usize, byte);
+
+                cpu.flags.c = cpu.a >= byte;
+                cpu.flags.z = cpu.a == byte;
+                cpu.flags.n = cpu.a.wrapping_sub(byte) >> 7 & 1 == 1;
+                cpu.remain_cycles += 2;
+            }
             SKB => {
                 adr_mode.fetch(cpu, ram).unwrap();
             }
@@ -747,86 +760,90 @@ impl OpCode {
         };
         match ins {
             LDA | LDX | LDY | STA | STX | STY | BIT | ORA | AND | EOR | ADC | SBC | CMP | CPX
-            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SAX | SKB | IGN => match adr_mode {
-                Implied | Accumulator | Immediate => {}
-                ZeroPageX => {
-                    addr_str = format!("{:} @ {:02X}", addr_str, (bytes[0]).wrapping_add(cpu.x));
-                    addr_str = format!(
-                        "{:} = {:02X}",
-                        addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
-                    )
+            | CPY | LSR | ASL | ROR | ROL | INC | DEC | LAX | SAX | SKB | IGN | DCP => {
+                match adr_mode {
+                    Implied | Accumulator | Immediate => {}
+                    ZeroPageX => {
+                        addr_str =
+                            format!("{:} @ {:02X}", addr_str, (bytes[0]).wrapping_add(cpu.x));
+                        addr_str = format!(
+                            "{:} = {:02X}",
+                            addr_str,
+                            mem.read_byte(addr.unwrap() as usize)
+                        )
+                    }
+                    ZeroPageY => {
+                        addr_str =
+                            format!("{:} @ {:02X}", addr_str, (bytes[0]).wrapping_add(cpu.y));
+                        addr_str = format!(
+                            "{:} = {:02X}",
+                            addr_str,
+                            mem.read_byte(addr.unwrap() as usize)
+                        )
+                    }
+                    AbsoluteX => {
+                        addr_str = format!(
+                            "{:} @ {:04X}",
+                            addr_str,
+                            (bytes[0] as u16)
+                                .wrapping_add(((bytes[1] as u16) << 8).wrapping_add(cpu.x as u16))
+                        );
+                        addr_str = format!(
+                            "{:} = {:02X}",
+                            addr_str,
+                            mem.read_byte(addr.unwrap() as usize)
+                        )
+                    }
+                    AbsoluteY => {
+                        addr_str = format!(
+                            "{:} @ {:04X}",
+                            addr_str,
+                            (bytes[0] as u16)
+                                .wrapping_add(((bytes[1] as u16) << 8).wrapping_add(cpu.y as u16))
+                        );
+                        addr_str = format!(
+                            "{:} = {:02X}",
+                            addr_str,
+                            mem.read_byte(addr.unwrap() as usize)
+                        )
+                    }
+                    IndexedIndirect => {
+                        let in_addr = bytes[0].wrapping_add(cpu.x);
+                        addr_str = format!("{:} @ {:02X}", addr_str, in_addr);
+                        let indexed_addr = mem.read_byte(in_addr as usize) as u16
+                            + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                        addr_str = format!("{:} = {:04X}", addr_str, indexed_addr);
+                        addr_str = format!(
+                            "{:} = {:02X}",
+                            addr_str,
+                            mem.read_byte(addr.unwrap() as usize)
+                        )
+                    }
+                    IndirectIndexed => {
+                        let in_addr = bytes[0];
+                        let indirected_addr = mem.read_byte(in_addr as usize) as u16
+                            + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                        addr_str = format!("{:} = {:04X}", addr_str, indirected_addr);
+                        addr_str = format!(
+                            "{:} @ {:04X}",
+                            addr_str,
+                            indirected_addr.wrapping_add(cpu.y as u16)
+                        );
+                        addr_str = format!(
+                            "{:} = {:02X}",
+                            addr_str,
+                            mem.read_byte(addr.unwrap() as usize)
+                        )
+                    }
+                    _ => {
+                        addr_str = format!(
+                            "{:} = {:02X}",
+                            addr_str,
+                            mem.read_byte(addr.unwrap() as usize)
+                        )
+                    }
                 }
-                ZeroPageY => {
-                    addr_str = format!("{:} @ {:02X}", addr_str, (bytes[0]).wrapping_add(cpu.y));
-                    addr_str = format!(
-                        "{:} = {:02X}",
-                        addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
-                    )
-                }
-                AbsoluteX => {
-                    addr_str = format!(
-                        "{:} @ {:04X}",
-                        addr_str,
-                        (bytes[0] as u16)
-                            .wrapping_add(((bytes[1] as u16) << 8).wrapping_add(cpu.x as u16))
-                    );
-                    addr_str = format!(
-                        "{:} = {:02X}",
-                        addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
-                    )
-                }
-                AbsoluteY => {
-                    addr_str = format!(
-                        "{:} @ {:04X}",
-                        addr_str,
-                        (bytes[0] as u16)
-                            .wrapping_add(((bytes[1] as u16) << 8).wrapping_add(cpu.y as u16))
-                    );
-                    addr_str = format!(
-                        "{:} = {:02X}",
-                        addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
-                    )
-                }
-                IndexedIndirect => {
-                    let in_addr = bytes[0].wrapping_add(cpu.x);
-                    addr_str = format!("{:} @ {:02X}", addr_str, in_addr);
-                    let indexed_addr = mem.read_byte(in_addr as usize) as u16
-                        + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
-                    addr_str = format!("{:} = {:04X}", addr_str, indexed_addr);
-                    addr_str = format!(
-                        "{:} = {:02X}",
-                        addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
-                    )
-                }
-                IndirectIndexed => {
-                    let in_addr = bytes[0];
-                    let indirected_addr = mem.read_byte(in_addr as usize) as u16
-                        + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
-                    addr_str = format!("{:} = {:04X}", addr_str, indirected_addr);
-                    addr_str = format!(
-                        "{:} @ {:04X}",
-                        addr_str,
-                        indirected_addr.wrapping_add(cpu.y as u16)
-                    );
-                    addr_str = format!(
-                        "{:} = {:02X}",
-                        addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
-                    )
-                }
-                _ => {
-                    addr_str = format!(
-                        "{:} = {:02X}",
-                        addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
-                    )
-                }
-            },
+            }
             JMP => {
                 if adr_mode == Indirect {
                     addr_str = format!("{:} = {:04X}", addr_str, addr.unwrap());
@@ -1048,11 +1065,11 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0xC0 */ Some(OpCode(CPY, Immediate, Official)),
     /* 0xC1 */ Some(OpCode(CMP, IndexedIndirect, Official)),
     /* 0xC2 */ Some(OpCode(SKB, Immediate, Unofficial)),
-    /* 0xC3 */ None,
+    /* 0xC3 */ Some(OpCode(DCP, IndexedIndirect, Unofficial)),
     /* 0xC4 */ Some(OpCode(CPY, ZeroPage, Official)),
     /* 0xC5 */ Some(OpCode(CMP, ZeroPage, Official)),
     /* 0xC6 */ Some(OpCode(DEC, ZeroPage, Official)),
-    /* 0xC7 */ None,
+    /* 0xC7 */ Some(OpCode(DCP, ZeroPage, Unofficial)),
     /* 0xC8 */ Some(OpCode(INY, Implied, Official)),
     /* 0xC9 */ Some(OpCode(CMP, Immediate, Official)),
     /* 0xCA */ Some(OpCode(DEX, Implied, Official)),
@@ -1060,23 +1077,23 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0xCC */ Some(OpCode(CPY, Absolute, Official)),
     /* 0xCD */ Some(OpCode(CMP, Absolute, Official)),
     /* 0xCE */ Some(OpCode(DEC, Absolute, Official)),
-    /* 0xCF */ None,
+    /* 0xCF */ Some(OpCode(DCP, Absolute, Unofficial)),
     /* 0xD0 */ Some(OpCode(BNE, Relative, Official)),
     /* 0xD1 */ Some(OpCode(CMP, IndirectIndexed, Official)),
     /* 0xD2 */ None,
-    /* 0xD3 */ None,
+    /* 0xD3 */ Some(OpCode(DCP, IndirectIndexed, Unofficial)),
     /* 0xD4 */ Some(OpCode(IGN, ZeroPageX, Unofficial)),
     /* 0xD5 */ Some(OpCode(CMP, ZeroPageX, Official)),
     /* 0xD6 */ Some(OpCode(DEC, ZeroPageX, Official)),
-    /* 0xD7 */ None,
+    /* 0xD7 */ Some(OpCode(DCP, ZeroPageX, Unofficial)),
     /* 0xD8 */ Some(OpCode(CLD, Implied, Official)),
     /* 0xD9 */ Some(OpCode(CMP, AbsoluteY, Official)),
     /* 0xDA */ Some(OpCode(NOP, Implied, Unofficial)),
-    /* 0xDB */ None,
+    /* 0xDB */ Some(OpCode(DCP, AbsoluteY, Unofficial)),
     /* 0xDC */ Some(OpCode(IGN, AbsoluteX, Unofficial)),
     /* 0xDD */ Some(OpCode(CMP, AbsoluteX, Official)),
     /* 0xDE */ Some(OpCode(DEC, AbsoluteX, Official)),
-    /* 0xDF */ None,
+    /* 0xDF */ Some(OpCode(DCP, AbsoluteX, Unofficial)),
     /* 0xE0 */ Some(OpCode(CPX, Immediate, Official)),
     /* 0xE1 */ Some(OpCode(SBC, IndexedIndirect, Official)),
     /* 0xE2 */ Some(OpCode(SKB, Immediate, Unofficial)),
@@ -2319,6 +2336,21 @@ mod test_instructions {
         cpu.x = 0b11110000;
         OpCode(Instruction::SAX, AddressingMode::ZeroPage, Unofficial).execute(&mut cpu, &mut ram);
         assert_eq!(ram[0x42], 0b00010000);
+    }
+
+    #[test]
+    fn test_dcp() {
+        let mut cpu = CPU::default();
+        let mut ram = RAM::default();
+
+        cpu.a = 0x10;
+        cpu.pc = 0x8000;
+        ram[0x8000] = 0x10;
+        ram[0x10] = 0x11;
+        OpCode(Instruction::DCP, AddressingMode::ZeroPage, Unofficial).execute(&mut cpu, &mut ram);
+        assert_eq!(cpu.flags.c, true);
+        assert_eq!(cpu.flags.z, true);
+        assert_eq!(cpu.flags.n, false);
     }
 
     #[test]
