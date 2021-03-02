@@ -2301,7 +2301,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         ram[0x8000] = 0x21;
         ram[0x21] = 0b10000010;
-        OpCode(Instruction::LAX, AddressingMode::ZeroPage, Official).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::LAX, AddressingMode::ZeroPage, Unofficial).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.a, 0b10000010);
         assert_eq!(cpu.x, 0b10000010);
         assert_eq!(cpu.flags.z, false);
@@ -2329,7 +2329,7 @@ mod test_instructions {
         cpu.pc = 0x8000;
         ram[0x8000] = 0x20;
 
-        OpCode(Instruction::SKB, AddressingMode::Immediate, Official).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::SKB, AddressingMode::Immediate, Unofficial).execute(&mut cpu, &mut ram);
 
         assert_eq!(cpu.remain_cycles, 1);
     }
@@ -2343,7 +2343,7 @@ mod test_instructions {
         ram[0x8000] = 0x20;
         ram[0x8001] = 0x10;
 
-        OpCode(Instruction::IGN, AddressingMode::Absolute, Official).execute(&mut cpu, &mut ram);
+        OpCode(Instruction::IGN, AddressingMode::Absolute, Unofficial).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.remain_cycles, 3);
     }
 }
