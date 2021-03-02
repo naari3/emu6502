@@ -1088,7 +1088,7 @@ pub const OPCODES: [Option<OpCode>; 0x100] = [
     /* 0xE8 */ Some(OpCode(INX, Implied, Official)),
     /* 0xE9 */ Some(OpCode(SBC, Immediate, Official)),
     /* 0xEA */ Some(OpCode(NOP, Implied, Official)),
-    /* 0xEB */ None,
+    /* 0xEB */ Some(OpCode(SBC, Immediate, Unofficial)),
     /* 0xEC */ Some(OpCode(CPX, Absolute, Official)),
     /* 0xED */ Some(OpCode(SBC, Absolute, Official)),
     /* 0xEE */ Some(OpCode(INC, Absolute, Official)),
