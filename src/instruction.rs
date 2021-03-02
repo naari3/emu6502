@@ -81,6 +81,7 @@ pub enum Instruction {
     // RMW instructions
     DCP,
     ISB,
+    SLO,
     // NOPs
     SKB,
     IGN,
@@ -630,27 +631,34 @@ impl OpCode {
                 cpu.remain_cycles -= 1;
             }
             LAX => {
+                // LDA -> TAX
                 let byte = adr_mode.fetch(cpu, ram).unwrap();
                 cpu.set_accumulator(byte);
                 cpu.set_index_x(byte);
             }
             SAX => {
+                // A&X -> STA
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
                 let byte = cpu.a & cpu.x;
                 cpu.write_byte(ram, addr as usize, byte);
             }
             DCP => {
+                // DEC -> CMP
+                // DEC
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
                 let byte = cpu.read_byte(ram, addr as usize);
                 let byte = byte.wrapping_sub(1);
                 cpu.write_byte(ram, addr as usize, byte);
 
+                // CMP
                 cpu.flags.c = cpu.a >= byte;
                 cpu.flags.z = cpu.a == byte;
                 cpu.flags.n = cpu.a.wrapping_sub(byte) >> 7 & 1 == 1;
                 cpu.remain_cycles += 2;
             }
             ISB => {
+                // INC -> SBC
+                // INC
                 let addr = adr_mode.get_address(cpu, ram).unwrap();
                 let inc_byte = cpu.read_byte(ram, addr as usize);
                 let inc_byte = inc_byte.wrapping_add(1);
@@ -658,6 +666,7 @@ impl OpCode {
                 cpu.set_zero_and_negative_flag(inc_byte);
                 cpu.write_byte(ram, addr as usize, inc_byte);
 
+                // SBC
                 let (byte, overflowing1) = cpu.a.overflowing_sub(inc_byte);
                 let (byte, overflowing2) = byte.overflowing_sub(!cpu.flags.c as u8);
                 cpu.flags.c = !(overflowing1 || overflowing2);
