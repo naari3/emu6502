@@ -301,6 +301,8 @@ impl OpCode {
             }
             PHP => {
                 let byte = cpu.flags.get_as_u8();
+                // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
+                let byte = byte | 0b00110000;
                 cpu.push_to_stack(ram, byte);
             }
             PLP => {
@@ -1584,7 +1586,7 @@ mod test_instructions {
 
         OpCode(Instruction::PHP, AddressingMode::Implied, Official).execute(&mut cpu, &mut ram);
         assert_eq!(cpu.sp, 0xFE);
-        assert_eq!(ram[0x1FF], 0b00100001);
+        assert_eq!(ram[0x1FF], 0b00110001);
     }
 
     #[test]
