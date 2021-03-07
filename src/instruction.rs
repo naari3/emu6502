@@ -1,6 +1,6 @@
 use std::usize;
 
-use crate::cpu::CPU;
+use crate::cpu::{Interrupt, CPU};
 use crate::ram::MemIO;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -613,14 +613,8 @@ impl OpCode {
                 cpu.flags.i = true;
             }
             BRK => {
-                let pc = cpu.pc;
-                cpu.push_to_stack(ram, (pc >> 8) as u8);
-                cpu.push_to_stack(ram, (pc & 0xFF) as u8);
                 cpu.flags.b = true;
-                let flags = cpu.flags.get_as_u8();
-                cpu.push_to_stack(ram, flags);
-                cpu.flags.i = true;
-                cpu.pc = ram.read_byte(0xFFFE) as u16 + (ram.read_byte(0xFFFF) as u16) << 8;
+                cpu.interrupt(ram, Interrupt::BRK);
             }
             NOP => {
                 cpu.remain_cycles += 1;
@@ -828,7 +822,8 @@ impl OpCode {
             Indirect => {
                 let in_addr = bytes[0] as u16 + ((bytes[1] as u16) << 8);
                 let addr = mem.read_byte_without_effect(in_addr as usize) as u16
-                    + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                    + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16)
+                        << 8);
                 (
                     format!("(${:04X})", bytes[0] as u16 + ((bytes[1] as u16) << 8)),
                     Some(addr),
@@ -837,13 +832,15 @@ impl OpCode {
             IndexedIndirect => {
                 let in_addr = bytes[0].wrapping_add(cpu.x);
                 let addr = mem.read_byte_without_effect(in_addr as usize) as u16
-                    + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                    + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16)
+                        << 8);
                 (format!("(${:02X},X)", bytes[0]), Some(addr))
             }
             IndirectIndexed => {
                 let in_addr = bytes[0];
                 let addr = (mem.read_byte_without_effect(in_addr as usize) as u16
-                    + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16) << 8))
+                    + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16)
+                        << 8))
                     .wrapping_add(cpu.y as u16);
                 (format!("(${:02X}),Y", bytes[0]), Some(addr))
             }
@@ -899,7 +896,9 @@ impl OpCode {
                     let in_addr = bytes[0].wrapping_add(cpu.x);
                     addr_str = format!("{:} @ {:02X}", addr_str, in_addr);
                     let indexed_addr = mem.read_byte_without_effect(in_addr as usize) as u16
-                        + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                        + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize)
+                            as u16)
+                            << 8);
                     addr_str = format!("{:} = {:04X}", addr_str, indexed_addr);
                     addr_str = format!(
                         "{:} = {:02X}",
@@ -910,7 +909,9 @@ impl OpCode {
                 IndirectIndexed => {
                     let in_addr = bytes[0];
                     let indirected_addr = mem.read_byte_without_effect(in_addr as usize) as u16
-                        + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                        + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize)
+                            as u16)
+                            << 8);
                     addr_str = format!("{:} = {:04X}", addr_str, indirected_addr);
                     addr_str = format!(
                         "{:} @ {:04X}",

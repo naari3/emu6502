@@ -45,6 +45,15 @@ impl Default for StatusFlag {
     }
 }
 
+#[allow(dead_code)]
+#[derive(Debug, PartialEq)]
+pub enum Interrupt {
+    NMI,
+    Reset,
+    IRQ,
+    BRK,
+}
+
 impl CPU {
     pub fn reset<T: Reset + MemIO>(&mut self, ram: &mut T) {
         self.pc = 0xFFFC;
@@ -65,6 +74,34 @@ impl CPU {
         self.pc = ((addr_high as u16) << 8) + (addr_low as u16);
 
         ram.reset();
+    }
+
+    pub fn interrupt<T: MemIO>(&mut self, ram: &mut T, kind: Interrupt) {
+        if Interrupt::IRQ == kind && self.flags.i {
+            return;
+        }
+        if Interrupt::Reset != kind {
+            if Interrupt::BRK != kind {
+                self.flags.b = false;
+            }
+            self.flags.r = true;
+            self.push_to_stack(ram, (self.pc >> 8) as u8);
+            self.push_to_stack(ram, (self.pc & 0xFF) as u8);
+            let flag_status = self.flags.get_as_u8();
+            self.push_to_stack(ram, flag_status);
+            self.flags.i = true;
+        }
+
+        self.pc = match kind {
+            Interrupt::NMI => 0xFFFA,
+            Interrupt::Reset => 0xFFFC,
+            Interrupt::IRQ => 0xFFFE,
+            Interrupt::BRK => 0xFFFE,
+        };
+
+        let addr_low = self.fetch_byte(ram);
+        let addr_high = self.fetch_byte(ram);
+        self.pc = ((addr_high as u16) << 8) + (addr_low as u16);
     }
 
     pub fn fetch_byte<T: MemIO>(&mut self, ram: &mut T) -> u8 {
