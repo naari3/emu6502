@@ -4,6 +4,9 @@ use crate::reset::Reset;
 
 pub trait MemIO {
     fn read_byte(&mut self, address: usize) -> u8;
+    fn read_byte_without_effect(&mut self, address: usize) -> u8 {
+        self.read_byte(address)
+    }
     fn write_byte(&mut self, address: usize, byte: u8);
 }
 

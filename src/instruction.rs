@@ -756,7 +756,7 @@ impl OpCode {
 
     #[cfg(feature = "logging")]
     pub fn log<T: MemIO>(&self, cpu: &mut CPU, mem: &mut T) -> String {
-        let ins_byte = mem.read_byte((cpu.pc - 1) as usize);
+        let ins_byte = mem.read_byte_without_effect((cpu.pc - 1) as usize);
         let op = &OPCODES[ins_byte as usize].unwrap();
 
         let ins = op.0;
@@ -787,7 +787,7 @@ impl OpCode {
         };
         let mut bytes = vec![];
         for i in 0..need_byte_count {
-            bytes.push(mem.read_byte((cpu.pc + i) as usize));
+            bytes.push(mem.read_byte_without_effect((cpu.pc + i) as usize));
         }
 
         let (mut addr_str, addr) = match adr_mode {
@@ -827,8 +827,8 @@ impl OpCode {
             ),
             Indirect => {
                 let in_addr = bytes[0] as u16 + ((bytes[1] as u16) << 8);
-                let addr = mem.read_byte(in_addr as usize) as u16
-                    + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                let addr = mem.read_byte_without_effect(in_addr as usize) as u16
+                    + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16) << 8);
                 (
                     format!("(${:04X})", bytes[0] as u16 + ((bytes[1] as u16) << 8)),
                     Some(addr),
@@ -836,14 +836,14 @@ impl OpCode {
             }
             IndexedIndirect => {
                 let in_addr = bytes[0].wrapping_add(cpu.x);
-                let addr = mem.read_byte(in_addr as usize) as u16
-                    + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                let addr = mem.read_byte_without_effect(in_addr as usize) as u16
+                    + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16) << 8);
                 (format!("(${:02X},X)", bytes[0]), Some(addr))
             }
             IndirectIndexed => {
                 let in_addr = bytes[0];
-                let addr = (mem.read_byte(in_addr as usize) as u16
-                    + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8))
+                let addr = (mem.read_byte_without_effect(in_addr as usize) as u16
+                    + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16) << 8))
                     .wrapping_add(cpu.y as u16);
                 (format!("(${:02X}),Y", bytes[0]), Some(addr))
             }
@@ -858,7 +858,7 @@ impl OpCode {
                     addr_str = format!(
                         "{:} = {:02X}",
                         addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
+                        mem.read_byte_without_effect(addr.unwrap() as usize)
                     )
                 }
                 ZeroPageY => {
@@ -866,7 +866,7 @@ impl OpCode {
                     addr_str = format!(
                         "{:} = {:02X}",
                         addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
+                        mem.read_byte_without_effect(addr.unwrap() as usize)
                     )
                 }
                 AbsoluteX => {
@@ -879,7 +879,7 @@ impl OpCode {
                     addr_str = format!(
                         "{:} = {:02X}",
                         addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
+                        mem.read_byte_without_effect(addr.unwrap() as usize)
                     )
                 }
                 AbsoluteY => {
@@ -892,25 +892,25 @@ impl OpCode {
                     addr_str = format!(
                         "{:} = {:02X}",
                         addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
+                        mem.read_byte_without_effect(addr.unwrap() as usize)
                     )
                 }
                 IndexedIndirect => {
                     let in_addr = bytes[0].wrapping_add(cpu.x);
                     addr_str = format!("{:} @ {:02X}", addr_str, in_addr);
-                    let indexed_addr = mem.read_byte(in_addr as usize) as u16
-                        + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                    let indexed_addr = mem.read_byte_without_effect(in_addr as usize) as u16
+                        + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16) << 8);
                     addr_str = format!("{:} = {:04X}", addr_str, indexed_addr);
                     addr_str = format!(
                         "{:} = {:02X}",
                         addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
+                        mem.read_byte_without_effect(addr.unwrap() as usize)
                     )
                 }
                 IndirectIndexed => {
                     let in_addr = bytes[0];
-                    let indirected_addr = mem.read_byte(in_addr as usize) as u16
-                        + ((mem.read_byte((in_addr.wrapping_add(1)) as usize) as u16) << 8);
+                    let indirected_addr = mem.read_byte_without_effect(in_addr as usize) as u16
+                        + ((mem.read_byte_without_effect((in_addr.wrapping_add(1)) as usize) as u16) << 8);
                     addr_str = format!("{:} = {:04X}", addr_str, indirected_addr);
                     addr_str = format!(
                         "{:} @ {:04X}",
@@ -920,14 +920,14 @@ impl OpCode {
                     addr_str = format!(
                         "{:} = {:02X}",
                         addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
+                        mem.read_byte_without_effect(addr.unwrap() as usize)
                     )
                 }
                 _ => {
                     addr_str = format!(
                         "{:} = {:02X}",
                         addr_str,
-                        mem.read_byte(addr.unwrap() as usize)
+                        mem.read_byte_without_effect(addr.unwrap() as usize)
                     )
                 }
             },
